@@ -417,9 +417,12 @@
 
     <!-- ===================== FICHE DE RELEVÉ ===================== -->
     <section data-screen="fiche">
-      <div class="card-flat" id="ficheContextBox" hidden>
-        <div style="font-size:12px;color:var(--text-mute);">Identifiant scanné</div>
-        <div class="mono" id="ficheIdDisplay" style="font-size:14px;font-weight:700;word-break:break-all;"></div>
+      <div class="card-flat" id="ficheContextBox" hidden style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="min-width:0;">
+          <div style="font-size:12px;color:var(--text-mute);" id="ficheContextLabel">Identifiant scanné</div>
+          <div class="mono" id="ficheIdDisplay" style="font-size:14px;font-weight:700;word-break:break-all;"></div>
+        </div>
+        <button type="button" class="btn btn-sm" id="btnInlineScan" style="flex:none;">Associer un QR</button>
       </div>
 
       <form id="ficheForm">
@@ -430,10 +433,7 @@
             <div class="field"><label>Heure</label><input type="time" id="f_heure"></div>
           </div>
           <div class="field"><label>Site <span class="req">*</span></label><input type="text" id="f_site" placeholder="ex. EHPAD SEVRES"></div>
-          <div class="field-row">
-            <div class="field"><label>Bâtiment</label><input type="text" id="f_batiment"></div>
-            <div class="field"><label>Étage</label><input type="text" id="f_etage" placeholder="ex. RDC, 1er étage"></div>
-          </div>
+          <div class="field"><label>Étage</label><input type="text" id="f_etage" placeholder="ex. RDC, 1er étage"></div>
           <div class="field"><label>Local / repère <span class="req">*</span></label><input type="text" id="f_local" placeholder="ex. Ch1, Restaurant"></div>
         </fieldset>
 
@@ -442,23 +442,8 @@
           <div class="field"><label>Catégorie</label><input type="text" id="f_categorie" placeholder="ex. Têtes de radiateur"></div>
           <div class="field"><label>Type d'équipement</label><input type="text" id="f_type" placeholder="ex. Tête thermostatique connectée"></div>
           <div class="field-row">
-            <div class="field"><label>Marque</label><input type="text" id="f_marque"></div>
-            <div class="field"><label>Modèle</label><input type="text" id="f_modele"></div>
-          </div>
-          <div class="field-row">
             <div class="field"><label>N° de série / identifiant</label><input type="text" class="mono" id="f_serie"></div>
             <div class="field"><label>Quantité</label><input type="number" min="0" step="1" id="f_quantite" value="1"></div>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>État du contrôle</legend>
-          <div class="state-grid" id="stateGrid"></div>
-          <div class="field" style="margin-top:2px;">
-            <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
-              <input type="checkbox" id="f_presence" checked style="accent-color:var(--primary);width:16px;height:16px;">
-              Équipement présent sur site
-            </label>
           </div>
         </fieldset>
 
@@ -541,17 +526,21 @@
     <!-- ===================== ÉQUIPEMENTS ATTENDUS (suivi unité par unité) ===================== -->
     <section data-screen="equipements">
       <p style="font-size:12.5px;color:var(--text-mute);margin:0;line-height:1.5;">
-        Chaque local est détaillé unité par unité selon le « nbre » importé (ex. Ch1 · nbre 2 → Tête n°1 et Tête n°2).
-        Appuyez sur une unité non scannée pour l'associer directement au prochain QR code lu.
+        Choisissez un étage puis une chambre dans les menus ci-dessous pour afficher directement ses têtes.
+        Appuyez sur une tête non contrôlée pour ouvrir sa fiche — le scan QR reste possible depuis la fiche
+        (bouton « Associer un QR »), mais n'est jamais nécessaire pour enregistrer.
       </p>
-      <div class="search-bar">
-        <input type="text" id="searchEquip" placeholder="Rechercher : local, étage…">
+      <div class="card-flat" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field-row">
+          <div class="field"><label for="equipEtageSelect">Étage</label><select id="equipEtageSelect"><option value="tous">Tous les étages</option></select></div>
+          <div class="field"><label for="equipLocalSelect">Chambre / local</label><select id="equipLocalSelect"><option value="">— Choisir —</option></select></div>
+        </div>
+        <input type="text" id="searchEquip" placeholder="Filtrer la liste des chambres…" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;font-size:14px;color:var(--text);">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;">
+          <input type="checkbox" id="equipOnlyMissing" style="accent-color:var(--primary);width:16px;height:16px;">
+          N'afficher que les chambres non terminées
+        </label>
       </div>
-      <div class="filter-row" id="filterEquipEtage"></div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;">
-        <input type="checkbox" id="equipOnlyMissing" style="accent-color:var(--primary);width:16px;height:16px;">
-        N'afficher que les unités non scannées
-      </label>
       <div id="equipResults" style="display:flex;flex-direction:column;gap:10px;"></div>
     </section>
 
@@ -643,9 +632,9 @@
 
   <nav class="tabbar">
     <div class="tabbar-inner">
-      <button class="tab active" data-nav="accueil">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v9a1 1 0 001 1h3v-6h4v6h3a1 1 0 001-1v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-        <span>Accueil</span>
+      <button class="tab active" data-nav="equipements">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 6.5l.7.7L5.8 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Chambres</span>
       </button>
       <button class="tab scan-tab" data-nav="scanner">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V5.5A1.5 1.5 0 015.5 4H8M16 4h2.5A1.5 1.5 0 0120 5.5V8M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16M8 20H5.5A1.5 1.5 0 014 18.5V16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -796,6 +785,16 @@ async function idbClear(store){
 }
 
 /* =====================================================================
+   LISTE THÉORIQUE PRÉ-CHARGÉE — un seul site (EHPAD SEVRES), extraite du
+   fichier Excel fourni. Chargée automatiquement au premier démarrage (si
+   aucune liste n'est déjà présente) : l'application s'ouvre directement
+   sur le tableau de remplissage, sans étape d'import manuel. L'import
+   depuis Outils reste disponible pour corriger ou remplacer la liste.
+   ===================================================================== */
+const PRELOADED_CHECKLIST = [{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch1","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch2","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch3","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch4","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch5","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch6","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch7","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch8","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch9","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch10","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch11","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch12","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch13","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch14","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch15","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch16","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch17","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch18","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch19","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch20","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch21","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch22","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch23","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch24","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Ch25","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir 1","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir 2","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir 3","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir 4","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir 5","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir UVP","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Salon UVP","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":4},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Salon 1","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Salon bibliothèque","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Hall","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":3},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Salle de restaurant","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":4},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Bureau","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Bureau DE","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Bureau","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Bureau","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Couloir bureau","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"RDC","local":"Infirmerie","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch101","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch102","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch103","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch104","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch105","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch106","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch107","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch108","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch109","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch110","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch111","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch112","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch113","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch114","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch115","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch116","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch117","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch118","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch119","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch120","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch121","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch122","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch123","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch124","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch125","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch126","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch127","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch128","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch129","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch130","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch131","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch132","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch133","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch134","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch135","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch136","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch137","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch138","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch139","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch140","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch141","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch142","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch143","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch144","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch145","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Ch146","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 1","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 2","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 3","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 4","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 5","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 6","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"couloir 7","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"salon d'étage","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"salle de soin","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"1er étage","local":"Local libre","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 201","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 202","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 203","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 204","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 205","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 206","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 207","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 208","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 209","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 210","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 211","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 212","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 213","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 214","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 215","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 216","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 217","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 218","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 219","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 220","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 221","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 222","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 223","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 224","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 225","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 226","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 227","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 228","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 229","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 230","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 231","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 232","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 233","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 234","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 235","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 236","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 237","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 238","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 239","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 240","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 241","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 242","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 243","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 244","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 245","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Ch 246","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 1","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 2","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 3","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 4","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 5","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 6","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"couloir 7","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"salon d'étage","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"salle de soin","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"2ieme étage","local":"Local Plan bleu","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"Vestiaire H","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":0},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"Vestiaire F","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"Salle de repos H","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"Salle de repos F","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"SDE H","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"3ieme Etage","local":"SDE F","categorie":"A / TETES DE RADIATEUR","type_equipement":"Radiateur","quantite_attendue":2},{"site":"EHPAD SEVRES","batiment":"","etage":"","local":"RESTAURANT","categorie":"B / GESTION DES CLIMATISEURS","type_equipement":"Gestion des climatiseurs","quantite_attendue":5},{"site":"EHPAD SEVRES","batiment":"","etage":"","local":"SALON TV","categorie":"B / GESTION DES CLIMATISEURS","type_equipement":"Gestion des climatiseurs","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"","local":"UVP INTERNE SALLE A MANGE 1","categorie":"B / GESTION DES CLIMATISEURS","type_equipement":"Gestion des climatiseurs","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"","local":"ENTREE ACCUEIL","categorie":"B / GESTION DES CLIMATISEURS","type_equipement":"Gestion des climatiseurs","quantite_attendue":1},{"site":"EHPAD SEVRES","batiment":"","etage":"","local":"CARTE POUR GESTION GTC","categorie":"C / CHAUDIERE ATLANTIC VARMAX","type_equipement":"Chaudiere atlantic varmax","quantite_attendue":1}]
+;
+
+/* =====================================================================
    ÉTAT DE L'APPLICATION (cache mémoire, resynchronisé depuis IndexedDB)
    ===================================================================== */
 const APP = {
@@ -809,11 +808,13 @@ const APP = {
   currentPhoto: null,     // base64 en cours pour la fiche ouverte
   pendingScan: null,      // données brutes issues du dernier scan avant résolution du doublon
   pendingUnit: null,       // unité précise ciblée avant un scan (depuis l'écran "Équipements")
+  returnScreen: null,      // écran vers lequel revenir après l'enregistrement (saisie tactile directe)
   scanLocation: null,      // étage/local choisis sur l'écran Scanner (contexte ambiant pour une série de scans)
   importItems: [],        // aperçu d'import en cours
   importIgnored: 0,
   listeFilterEtat: 'tous',
   equipFilterEtage: 'tous',
+  equipSelectedLocal: null,   // chambre choisie dans le menu déroulant ("etage|||local"), ou null
   equipOnlyMissing: false,
 };
 
@@ -828,12 +829,49 @@ async function loadAll(){
   settingsRows.forEach(r=>{ APP.settings[r.key] = r.value; });
 }
 
+/* Charge la liste théorique pré-remplie (un seul site) au tout premier
+   démarrage, si aucune liste n'a déjà été importée ou saisie — permet à
+   l'application de s'ouvrir directement sur le tableau de remplissage,
+   têtes déjà éclatées (Tête n°1, n°2…) par local. Sans effet si une liste
+   existe déjà (ne jamais écraser des données déjà présentes/saisies). */
+async function seedPreloadedChecklist(){
+  if(APP.checklist.length || !PRELOADED_CHECKLIST.length) return;
+  const items = PRELOADED_CHECKLIST.map(it=> Object.assign({id:uid()}, it));
+  await idbBulkPut('checklist', items);
+  APP.checklist.push(...items);
+
+  const newUnits = [];
+  items.forEach(item=>{
+    const n = Math.max(0, Number(item.quantite_attendue)||0);
+    for(let i=1;i<=n;i++){
+      newUnits.push({
+        id: uid(), checklist_id: item.id,
+        site: item.site, batiment: item.batiment, etage: item.etage, local: item.local,
+        categorie: item.categorie, type_equipement: item.type_equipement,
+        index: i, identifiant_qr:'', releve_id:'',
+      });
+    }
+  });
+  if(newUnits.length){ await idbBulkPut('unites', newUnits); APP.unites.push(...newUnits); }
+
+  if(!APP.settings.site){
+    const site = items[0].site || '';
+    if(site){ APP.settings.site = site; await idbPut('settings', {key:'site', value:site}); }
+  }
+}
+
+/* Distingue un identifiant réellement scanné d'un identifiant généré
+   automatiquement lors d'un enregistrement en saisie tactile (sans QR) —
+   pour ne jamais afficher ce dernier comme s'il s'agissait d'un vrai
+   numéro de série/QR. */
+function isRealQr(id){ return !!id && !String(id).startsWith('MANUEL-'); }
+
 /* Libellé d'une unité individuelle : "Tête n°1" pour les radiateurs/têtes
    thermostatiques, générique "{type} n°N" sinon. */
 function unitLabel(u){
   const txt = ((u.categorie||'')+' '+(u.type_equipement||'')).toLowerCase();
   const base = /radiateur|t[êe]te therm/.test(txt) ? 'Tête' : (u.type_equipement || u.categorie || 'Équipement');
-  return `${base} n°${u.index}`;
+  return `${base} n°${u._displayIndex || u.index}`;
 }
 
 /* Dernier relevé (le plus récent) par identifiant QR — sert pour les
@@ -852,11 +890,11 @@ function latestByIdentifiant(){
    ===================================================================== */
 const SCREEN_TITLES = {
   accueil:   ['Relevé Terrain QR', 'Contrôle des équipements techniques'],
-  scanner:   ['Scanner', 'Lecture d’un QR code'],
+  scanner:   ['Scanner', 'Lecture d’un QR code (optionnel)'],
   fiche:     ['Fiche de relevé', 'Complétez puis enregistrez'],
   liste:     ['Relevés', 'Historique des contrôles'],
   dashboard: ['Tableau de bord', 'Avancement du contrôle'],
-  equipements: ['Équipements attendus', 'Suivi tête par tête, local par local'],
+  equipements: ['Tableau de remplissage', 'Pointage par local, tête par tête'],
   outils:    ['Outils', 'Import · export · réglages'],
 };
 function goto(screen, opts){
@@ -873,7 +911,7 @@ function goto(screen, opts){
   const meta = SCREEN_TITLES[screen] || ['',''];
   document.getElementById('screenTitle').textContent = meta[0];
   document.getElementById('screenSub').textContent = meta[1];
-  document.getElementById('btnBack').hidden = (screen === 'accueil');
+  document.getElementById('btnBack').hidden = (screen === 'equipements');
   if(screen === 'liste') renderListe();
   if(screen === 'dashboard') renderDashboard();
   if(screen === 'accueil') renderAccueil();
@@ -890,7 +928,7 @@ document.addEventListener('click', (e)=>{
     goto(nav.dataset.nav, tool ? {toolTab:tool} : {});
   }
 });
-document.getElementById('btnBack').addEventListener('click', ()=> goto('accueil'));
+document.getElementById('btnBack').addEventListener('click', ()=> goto('equipements'));
 document.getElementById('btnTools').addEventListener('click', ()=> goto('outils'));
 
 /* =====================================================================
@@ -905,8 +943,8 @@ function renderAccueil(){
   document.getElementById('heroAnoCount').textContent = anomalies;
   document.getElementById('accCountListe').textContent = latest.length + ' fiche(s)';
   if(APP.unites.length){
-    const filled = APP.unites.filter(u=> u.identifiant_qr).length;
-    document.getElementById('accCountEquip').textContent = `${filled}/${APP.unites.length} unités scannées`;
+    const filled = APP.unites.filter(u=> u.releve_id).length;
+    document.getElementById('accCountEquip').textContent = `${filled}/${APP.unites.length} unités contrôlées`;
   }
   const site = APP.settings.site || (APP.checklist[0] && APP.checklist[0].site) || '';
   document.getElementById('heroSite').textContent = site ? site : 'Sélectionnez un chantier';
@@ -1166,6 +1204,85 @@ document.getElementById('filePhotoScan').addEventListener('change', async (e)=>{
    premier appui sur « Démarrer la caméra » soit déjà prêt. */
 function warmUpScanner(){ ensureJsQR(); }
 
+/* =====================================================================
+   SCAN QR PONCTUEL EN FENÊTRE MODALE — permet d'associer un QR code à une
+   fiche déjà ouverte (saisie tactile depuis le tableau de remplissage)
+   sans quitter l'écran ni perdre les champs déjà saisis. Le scan QR reste
+   ainsi disponible en option, jamais obligatoire pour enregistrer.
+   ===================================================================== */
+let inlineScanStream = null, inlineScanRAF = null;
+function stopInlineScan(){
+  if(inlineScanRAF) cancelAnimationFrame(inlineScanRAF);
+  inlineScanRAF = null;
+  if(inlineScanStream){ inlineScanStream.getTracks().forEach(t=>t.stop()); inlineScanStream = null; }
+}
+async function openInlineQrScan(onResult){
+  openModal(`
+    <h3>Scanner un QR code</h3>
+    <div class="scan-frame" id="inlineScanFrame" style="max-height:50vh;">
+      <video id="inlineScanVideo" playsinline muted hidden></video>
+      <canvas id="inlineScanCanvas" hidden></canvas>
+      <div class="scan-placeholder" id="inlineScanPlaceholder">
+        <div style="color:#9fb0bd;font-size:12.5px;">Ouverture de la caméra…</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-block" id="btnInlineScanCancel">Annuler</button>
+    </div>
+  `);
+  document.getElementById('btnInlineScanCancel').addEventListener('click', ()=>{ stopInlineScan(); closeModal(); });
+
+  const showInlineError = (title, detail)=>{
+    const ph = document.getElementById('inlineScanPlaceholder');
+    if(!ph) return; // modale déjà fermée entretemps
+    ph.innerHTML = `<div><b style="color:#f2b385;font-size:13px;font-weight:700;">${esc(title)}</b><br><span style="font-size:12px;white-space:pre-line;">${esc(detail)}</span></div>`;
+  };
+
+  if(window.isSecureContext === false){ showInlineError('Connexion non sécurisée', 'La caméra nécessite une page en HTTPS. Utilisez plutôt la saisie manuelle.'); return; }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ showInlineError('Caméra non disponible', 'Ce navigateur ne permet pas l’accès à la caméra ici.'); return; }
+  const jsQROk = await ensureJsQR();
+  if(!jsQROk){ showInlineError('Lecteur QR indisponible', 'La bibliothèque de scan n’a pas pu être chargée (réseau). Réessayez dans un instant.'); return; }
+
+  try{
+    try{ inlineScanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false }); }
+    catch(err1){ inlineScanStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false }); }
+  }catch(err){
+    if(err && err.name === 'NotAllowedError'){ const g = buildCameraDeniedGuidance(); showInlineError('Caméra indisponible', g.detail); return; }
+    let msg = 'Accès caméra refusé.';
+    if(err && err.name === 'NotFoundError') msg = 'Aucune caméra détectée sur cet appareil.';
+    else if(err && err.name === 'NotReadableError') msg = 'La caméra est déjà utilisée par une autre application.';
+    showInlineError('Caméra indisponible', msg); return;
+  }
+  if(!document.getElementById('inlineScanVideo')) { stopInlineScan(); return; } // modale fermée entretemps
+
+  const video = document.getElementById('inlineScanVideo');
+  const canvas = document.getElementById('inlineScanCanvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  document.getElementById('inlineScanPlaceholder').hidden = true;
+  video.hidden = false;
+  video.srcObject = inlineScanStream;
+  try{ await video.play(); }catch(_e){ /* certains navigateurs déclenchent play() automatiquement */ }
+
+  const tick = ()=>{
+    if(!inlineScanStream) return;
+    const v = document.getElementById('inlineScanVideo');
+    if(!v){ stopInlineScan(); return; } // modale fermée entretemps
+    if(v.readyState === v.HAVE_ENOUGH_DATA){
+      canvas.width = v.videoWidth; canvas.height = v.videoHeight;
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
+      if(code && code.data){
+        stopInlineScan(); closeModal();
+        onResult(parseScanPayload(code.data).identifiant || code.data);
+        return;
+      }
+    }
+    inlineScanRAF = requestAnimationFrame(tick);
+  };
+  inlineScanRAF = requestAnimationFrame(tick);
+}
+
 document.getElementById('btnManualGo').addEventListener('click', ()=>{
   const v = document.getElementById('manualId').value.trim();
   if(!v){ toast('Saisissez un identifiant'); return; }
@@ -1202,8 +1319,8 @@ function updateScanLocationProgress(){
   if(!APP.scanLocation || !APP.scanLocation.local){ note.textContent = ''; return; }
   const units = APP.unites.filter(u=> (u.etage||'—')===APP.scanLocation.etage && u.local===APP.scanLocation.local);
   if(!units.length){ note.textContent = 'Local hors liste théorique — les scans seront libres.'; return; }
-  const filled = units.filter(u=> u.identifiant_qr).length;
-  note.textContent = `${filled}/${units.length} unité(s) déjà scannée(s) dans ce local.`;
+  const filled = units.filter(u=> u.releve_id).length;
+  note.textContent = `${filled}/${units.length} unité(s) déjà contrôlée(s) dans ce local.`;
 }
 document.getElementById('scanEtageSelect').addEventListener('change', (e)=>{
   const etage = e.target.value;
@@ -1327,7 +1444,7 @@ function buildBlankFiche(data){
    permet de scanner pièce par pièce sans passer par l'écran Équipements. */
 function findAutoUnit(record){
   return APP.unites.find(u=>
-    !u.identifiant_qr &&
+    !u.releve_id &&
     (u.local||'').toLowerCase() === (record.local||'').toLowerCase() &&
     (u.etage||'').toLowerCase() === (record.etage||'').toLowerCase() &&
     (u.site||'').toLowerCase() === (record.site||'').toLowerCase() &&
@@ -1342,7 +1459,7 @@ function openModal(html){
   document.getElementById('modalSheet').innerHTML = html;
   document.getElementById('modalOverlay').hidden = false;
 }
-function closeModal(){ document.getElementById('modalOverlay').hidden = true; }
+function closeModal(){ stopInlineScan(); document.getElementById('modalOverlay').hidden = true; }
 document.getElementById('modalOverlay').addEventListener('click', (e)=>{
   if(e.target.id === 'modalOverlay') closeModal();
 });
@@ -1380,22 +1497,6 @@ function openDuplicateModal(existing, scanData){
 /* =====================================================================
    FICHE DE RELEVÉ (formulaire)
    ===================================================================== */
-function renderStateGrid(selected){
-  const grid = document.getElementById('stateGrid');
-  grid.innerHTML = STATES.map(s=>`
-    <label class="state-opt ${s.key===selected?'checked':''}" style="--chip-c:var(${s.var});--chip-tint:var(${s.tint})">
-      <input type="radio" name="f_etat" value="${s.key}" ${s.key===selected?'checked':''}>
-      <span class="dot" style="background:var(${s.var})"></span> ${esc(s.label)}
-    </label>
-  `).join('');
-  grid.querySelectorAll('input[name=f_etat]').forEach(inp=>{
-    inp.addEventListener('change', ()=>{
-      grid.querySelectorAll('.state-opt').forEach(o=> o.classList.remove('checked'));
-      inp.closest('.state-opt').classList.add('checked');
-    });
-  });
-}
-
 let sigDrawing = false, sigCtx = null;
 function setupSignaturePad(existingDataUrl){
   const canvas = document.getElementById('sigPad');
@@ -1453,27 +1554,49 @@ document.getElementById('filePhotoForm').addEventListener('change', async (e)=>{
   catch(err){ toast('Impossible de charger cette photo'); }
 });
 
+/* Rafraîchit le bandeau de contexte en haut de la fiche : identifiant déjà
+   scanné, ou — en saisie tactile directe depuis le tableau — la tête ciblée
+   avec un bouton pour lui associer un QR code si on le souhaite. */
+function renderFicheContext(){
+  const record = APP.currentFiche;
+  const box = document.getElementById('ficheContextBox');
+  const label = document.getElementById('ficheContextLabel');
+  const disp = document.getElementById('ficheIdDisplay');
+  const btn = document.getElementById('btnInlineScan');
+  if(isRealQr(record.identifiant_qr)){
+    box.hidden = false; label.textContent = 'Identifiant scanné'; disp.textContent = record.identifiant_qr;
+    btn.textContent = 'Rescanner'; btn.hidden = false;
+  }else if(APP.pendingUnit || record._boundUnitId){
+    box.hidden = false; label.textContent = 'Tête ciblée';
+    disp.textContent = APP.pendingUnit ? `${APP.pendingUnit.local} · ${unitLabel(APP.pendingUnit)}` : (record.local||'');
+    btn.textContent = 'Associer un QR'; btn.hidden = false;
+  }else{
+    box.hidden = true;
+  }
+}
+document.getElementById('btnInlineScan').addEventListener('click', ()=>{
+  openInlineQrScan((text)=>{
+    APP.currentFiche.identifiant_qr = text;
+    renderFicheContext();
+    toast('QR associé à cette fiche');
+  });
+});
+
 function openFiche(record, opts){
   opts = opts || {};
   APP.currentFiche = record;
-  document.getElementById('ficheContextBox').hidden = !record.identifiant_qr;
-  document.getElementById('ficheIdDisplay').textContent = record.identifiant_qr || '';
+  renderFicheContext();
   document.getElementById('f_date').value = record.date || todayISO();
   document.getElementById('f_heure').value = record.heure || nowHM();
   document.getElementById('f_site').value = record.site || '';
-  document.getElementById('f_batiment').value = record.batiment || '';
   document.getElementById('f_etage').value = record.etage || '';
   document.getElementById('f_local').value = record.local || '';
   document.getElementById('f_categorie').value = record.categorie || '';
   document.getElementById('f_type').value = record.type_equipement || '';
-  document.getElementById('f_marque').value = record.marque || '';
-  document.getElementById('f_modele').value = record.modele || '';
   document.getElementById('f_serie').value = record.numero_serie || '';
   document.getElementById('f_quantite').value = record.quantite || 1;
-  document.getElementById('f_presence').checked = record.presence !== false;
   document.getElementById('f_commentaire').value = record.commentaire || '';
   document.getElementById('f_technicien').value = record.technicien || APP.settings.technicien || '';
-  renderStateGrid(record.etat || 'conforme');
   renderPhoto(record.photo || '');
   setTimeout(()=> setupSignaturePad(record.signature || ''), 0);
 
@@ -1488,7 +1611,8 @@ function openFiche(record, opts){
 }
 document.getElementById('btnFicheCancel').addEventListener('click', ()=>{
   stopScanner();
-  goto(APP.currentFiche && APP.currentFiche._isNew ? 'scanner' : 'liste');
+  const backTo = APP.returnScreen; APP.returnScreen = null;
+  goto(backTo || (APP.currentFiche && APP.currentFiche._isNew ? 'scanner' : 'liste'));
 });
 
 function diffFields(oldR, newR){
@@ -1517,16 +1641,16 @@ document.getElementById('ficheForm').addEventListener('submit', async (e)=>{
     identifiant_qr: APP.currentFiche.identifiant_qr || ('MANUEL-'+uid().slice(0,8).toUpperCase()),
     date: document.getElementById('f_date').value || todayISO(),
     heure: document.getElementById('f_heure').value || nowHM(),
-    site, batiment: document.getElementById('f_batiment').value.trim(),
-    etage: document.getElementById('f_etage').value.trim(), local,
+    site, etage: document.getElementById('f_etage').value.trim(), local,
     categorie: document.getElementById('f_categorie').value.trim(),
     type_equipement: document.getElementById('f_type').value.trim(),
-    marque: document.getElementById('f_marque').value.trim(),
-    modele: document.getElementById('f_modele').value.trim(),
     numero_serie: document.getElementById('f_serie').value.trim(),
     quantite: Number(document.getElementById('f_quantite').value || 1),
-    etat: (document.querySelector('input[name=f_etat]:checked')||{}).value || 'conforme',
-    presence: document.getElementById('f_presence').checked,
+    // « État du contrôle » retiré de la fiche : outil épuré autour du seul
+    // enregistrement rapide du numéro de série après scan. On garde un état
+    // et une présence par défaut pour ne pas casser le tableau de bord/export.
+    etat: APP.currentFiche.etat || 'conforme',
+    presence: APP.currentFiche.presence !== false,
     commentaire: document.getElementById('f_commentaire').value.trim(),
     technicien: document.getElementById('f_technicien').value.trim(),
     photo: APP.currentPhoto || '',
@@ -1578,10 +1702,16 @@ document.getElementById('ficheForm').addEventListener('submit', async (e)=>{
   }
 
   stopScanner();
-  // En contexte "étage/local" (série de scans dans la même pièce), on
-  // retourne directement au scanner pour enchaîner sur la tête suivante
-  // au lieu de renvoyer vers la liste à chaque relevé.
-  if(wasNewFromScan && APP.scanLocation && APP.scanLocation.local){
+  const backTo = APP.returnScreen; APP.returnScreen = null;
+  if(backTo){
+    // Saisie tactile directe depuis le tableau de remplissage : on y
+    // retourne pour enchaîner sur la tête suivante.
+    goto(backTo);
+    toast('Relevé enregistré');
+  }else if(wasNewFromScan && APP.scanLocation && APP.scanLocation.local){
+    // En contexte "étage/local" (série de scans dans la même pièce), on
+    // retourne directement au scanner pour enchaîner sur la tête suivante
+    // au lieu de renvoyer vers la liste à chaque relevé.
     goto('scanner');
     toast('Relevé enregistré — prêt pour le scan suivant');
   }else{
@@ -1690,7 +1820,7 @@ function renderDashboard(){
   // (Tête n°1, n°2…) ; sinon on retombe sur le décompte agrégé par local.
   const useUnits = APP.unites.length > 0;
   const attendu = useUnits ? APP.unites.length : APP.checklist.reduce((s,c)=> s + (Number(c.quantite_attendue)||0), 0);
-  const releve = useUnits ? APP.unites.filter(u=> u.identifiant_qr).length : latest.length;
+  const releve = useUnits ? APP.unites.filter(u=> u.releve_id).length : latest.length;
   const pct = attendu > 0 ? Math.min(100, Math.round((releve/attendu)*100)) : (releve>0 ? 100 : 0);
   const ring = document.getElementById('dashRing');
   const circumference = 2*Math.PI*36;
@@ -1725,7 +1855,7 @@ function renderDashboard(){
     APP.unites.forEach(u=>{
       const key = (u.site||'—')+'|||'+(u.etage||'—');
       const g = groups.get(key) || { site:u.site||'—', etage:u.etage||'—', attendu:0, releve:0 };
-      g.attendu++; if(u.identifiant_qr) g.releve++;
+      g.attendu++; if(u.releve_id) g.releve++;
       groups.set(key, g);
     });
   }else{
@@ -1759,32 +1889,56 @@ function renderDashboard(){
    l'import ; on les regroupe ici par local pour afficher Tête n°1,
    Tête n°2… et permettre d'associer directement un scan à l'une d'elles.
    ===================================================================== */
-function renderEquipFilterChips(){
-  const box = document.getElementById('filterEquipEtage');
-  const etages = ['tous', ...new Set(APP.unites.map(u=> u.etage || '—'))];
-  box.innerHTML = etages.map(e=>
-    `<button class="filter-chip ${e===APP.equipFilterEtage?'active':''}" data-etage="${esc(e)}">${e==='tous'?'Tous les étages':esc(e)}</button>`
-  ).join('');
-  box.querySelectorAll('.filter-chip').forEach(c=> c.addEventListener('click', ()=>{ APP.equipFilterEtage = c.dataset.etage; renderEquipements(); }));
-}
-function renderEquipements(){
-  renderEquipFilterChips();
-  document.getElementById('equipOnlyMissing').checked = APP.equipOnlyMissing;
-  const q = (document.getElementById('searchEquip').value||'').toLowerCase();
-
-  const groups = new Map();
+/* Liste des chambres/locaux (un par couple étage+local, toutes catégories
+   d'équipement confondues) avec leur avancement, pour peupler le menu
+   déroulant — bien plus lisible qu'une longue liste de cartes empilées
+   quand le site compte plus d'une centaine de locaux. */
+function equipRoomOptions(){
+  const rooms = new Map();
   APP.unites.forEach(u=>{
-    const key = [u.site,u.etage,u.local,u.categorie].join('|||');
-    if(!groups.has(key)) groups.set(key, { site:u.site, etage:u.etage, local:u.local, categorie:u.categorie, type_equipement:u.type_equipement, units:[] });
-    groups.get(key).units.push(u);
+    const key = (u.etage||'—')+'|||'+u.local;
+    if(!rooms.has(key)) rooms.set(key, { etage:u.etage||'—', local:u.local, total:0, done:0 });
+    const r = rooms.get(key);
+    r.total++; if(u.releve_id) r.done++;
   });
-  let list = [...groups.values()];
-  if(APP.equipFilterEtage !== 'tous') list = list.filter(g=> (g.etage||'—') === APP.equipFilterEtage);
-  if(q) list = list.filter(g=> (g.local||'').toLowerCase().includes(q) || (g.etage||'').toLowerCase().includes(q) || (g.site||'').toLowerCase().includes(q));
-  if(APP.equipOnlyMissing) list = list.filter(g=> g.units.some(u=> !u.identifiant_qr));
-  list.forEach(g=> g.units.sort((a,b)=> a.index-b.index));
-  list.sort((a,b)=> (a.etage||'').localeCompare(b.etage||'') || (a.local||'').localeCompare(b.local||''));
-
+  let list = [...rooms.values()];
+  if(APP.equipFilterEtage !== 'tous') list = list.filter(r=> r.etage === APP.equipFilterEtage);
+  const q = (document.getElementById('searchEquip').value||'').toLowerCase();
+  if(q) list = list.filter(r=> r.local.toLowerCase().includes(q) || r.etage.toLowerCase().includes(q));
+  if(APP.equipOnlyMissing) list = list.filter(r=> r.done < r.total);
+  list.sort((a,b)=> a.etage.localeCompare(b.etage) || a.local.localeCompare(b.local, undefined, {numeric:true, sensitivity:'base'}));
+  return list;
+}
+function populateEquipEtageSelect(){
+  const sel = document.getElementById('equipEtageSelect');
+  const etages = [...new Set(APP.unites.map(u=> u.etage || '—'))].sort((a,b)=> a.localeCompare(b));
+  sel.innerHTML = '<option value="tous">Tous les étages</option>' + etages.map(e=> `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  sel.value = APP.equipFilterEtage;
+}
+function populateEquipLocalSelect(){
+  const sel = document.getElementById('equipLocalSelect');
+  const rooms = equipRoomOptions();
+  if(!rooms.length){
+    sel.innerHTML = '<option value="">Aucune chambre pour ce filtre</option>';
+    sel.disabled = true;
+    APP.equipSelectedLocal = null;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— Choisir une chambre —</option>' + rooms.map(r=>{
+    const val = r.etage+'|||'+r.local;
+    const label = `${r.local}${APP.equipFilterEtage==='tous' && r.etage!=='—' ? ' — '+r.etage : ''} (${r.done}/${r.total})`;
+    return `<option value="${esc(val)}">${esc(label)}</option>`;
+  }).join('');
+  const stillValid = APP.equipSelectedLocal && rooms.some(r=> (r.etage+'|||'+r.local) === APP.equipSelectedLocal);
+  sel.value = stillValid ? APP.equipSelectedLocal : '';
+  if(!stillValid) APP.equipSelectedLocal = null;
+}
+/* Affiche la fiche complète (toutes catégories d'équipement confondues) de
+   la chambre choisie dans le menu déroulant — les têtes sont renumérotées
+   de façon continue pour éviter les doublons « Tête n°1 » quand plusieurs
+   lignes de la liste théorique partagent le même nom de local. */
+function renderSelectedRoom(){
   const box = document.getElementById('equipResults');
   if(!APP.unites.length){
     box.innerHTML = `<div class="empty">
@@ -1792,50 +1946,84 @@ function renderEquipements(){
       <b>Aucune liste importée</b><small>Importez votre fichier Excel (Outils › Import) pour générer le détail unité par unité.</small></div>`;
     return;
   }
-  if(!list.length){
-    box.innerHTML = `<div class="empty"><b>Aucun résultat</b><small>Essayez un autre filtre ou une autre recherche.</small></div>`;
+  if(!APP.equipSelectedLocal){
+    box.innerHTML = `<div class="empty"><b>Choisissez une chambre</b><small>Sélectionnez un étage puis une chambre ci-dessus pour afficher ses têtes à contrôler.</small></div>`;
     return;
   }
-  box.innerHTML = list.map(g=>{
-    const filled = g.units.filter(u=> u.identifiant_qr).length;
-    const unitsHtml = g.units.map(u=>{
-      const rec = u.releve_id ? APP.releves.find(r=> r.id === u.releve_id) : null;
-      const st = rec ? stateInfo(rec.etat) : null;
-      return `<div class="unit-row ${u.identifiant_qr?'filled':''}" data-unit="${u.id}">
-        <div>
-          <div class="u-label">${esc(unitLabel(u))}</div>
-          ${u.identifiant_qr ? `<div class="u-id">${esc(u.identifiant_qr)}</div>` : ''}
-        </div>
-        <div class="u-status">${u.identifiant_qr ? (st ? esc(st.label) : 'Scanné ✓') : 'Non scanné · scanner ›'}</div>
-      </div>`;
-    }).join('');
-    return `<div class="local-card">
-      <div class="lc-head">
-        <div>
-          <b>${esc(g.local || g.site)}</b>
-          <div class="meta">${esc([g.site, g.etage, g.categorie].filter(Boolean).join(' · '))}</div>
-        </div>
-        <div class="lc-progress">${filled}/${g.units.length}</div>
+  const [etage, local] = APP.equipSelectedLocal.split('|||');
+  const units = APP.unites
+    .filter(u=> (u.etage||'—')===etage && u.local===local)
+    .sort((a,b)=> (a.categorie||'').localeCompare(b.categorie||'') || a.index-b.index);
+  units.forEach((u,i)=>{ u._displayIndex = i+1; }); // renumérotation continue, sans toucher aux données stockées
+  if(!units.length){
+    box.innerHTML = `<div class="empty"><b>Chambre introuvable</b><small>Choisissez-en une autre dans le menu.</small></div>`;
+    return;
+  }
+  const filled = units.filter(u=> u.releve_id).length;
+  const site = units[0].site;
+  const categories = [...new Set(units.map(u=> u.categorie).filter(Boolean))];
+  const unitsHtml = units.map(u=>{
+    const rec = u.releve_id ? APP.releves.find(r=> r.id === u.releve_id) : null;
+    const st = rec ? stateInfo(rec.etat) : null;
+    const hasRealQr = isRealQr(u.identifiant_qr);
+    return `<div class="unit-row ${u.releve_id?'filled':''}" data-unit="${u.id}">
+      <div>
+        <div class="u-label">${esc(unitLabel(u))}</div>
+        ${hasRealQr ? `<div class="u-id">${esc(u.identifiant_qr)}</div>` : ''}
       </div>
-      <div class="unit-list">${unitsHtml}</div>
+      <div class="u-status">${u.releve_id ? (st ? esc(st.label) : 'Contrôlé ✓') : 'Non contrôlé · appuyer ›'}</div>
     </div>`;
   }).join('');
+  box.innerHTML = `<div class="local-card">
+    <div class="lc-head">
+      <div>
+        <b>${esc(local)}</b>
+        <div class="meta">${esc([site, etage!=='—'?etage:'', categories.join(' · ')].filter(Boolean).join(' · '))}</div>
+      </div>
+      <div class="lc-progress">${filled}/${units.length}</div>
+    </div>
+    <div class="unit-list">${unitsHtml}</div>
+  </div>`;
 
   box.querySelectorAll('.unit-row').forEach(el=>{
     el.addEventListener('click', ()=>{
       const u = APP.unites.find(x=> x.id === el.dataset.unit);
       if(!u) return;
-      if(u.identifiant_qr && u.releve_id){
+      if(u.releve_id){
         const rec = APP.releves.find(r=> r.id === u.releve_id);
         if(rec){ openFicheReadEdit(rec); return; }
       }
+      // Tête non contrôlée : ouvre directement la fiche en saisie tactile
+      // (le scan QR reste possible depuis la fiche via « Associer un QR »,
+      // mais n'est jamais nécessaire pour enregistrer le contrôle).
       APP.pendingUnit = u;
-      goto('scanner');
+      APP.returnScreen = 'equipements';
+      openFiche(buildBlankFiche({}));
     });
   });
 }
-document.getElementById('searchEquip').addEventListener('input', debounce(renderEquipements, 150));
-document.getElementById('equipOnlyMissing').addEventListener('change', (e)=>{ APP.equipOnlyMissing = e.target.checked; renderEquipements(); });
+function renderEquipements(){
+  document.getElementById('equipOnlyMissing').checked = APP.equipOnlyMissing;
+  populateEquipEtageSelect();
+  populateEquipLocalSelect();
+  renderSelectedRoom();
+}
+document.getElementById('equipEtageSelect').addEventListener('change', (e)=>{
+  APP.equipFilterEtage = e.target.value;
+  APP.equipSelectedLocal = null;
+  populateEquipLocalSelect();
+  renderSelectedRoom();
+});
+document.getElementById('equipLocalSelect').addEventListener('change', (e)=>{
+  APP.equipSelectedLocal = e.target.value || null;
+  renderSelectedRoom();
+});
+document.getElementById('searchEquip').addEventListener('input', debounce(()=>{ populateEquipLocalSelect(); renderSelectedRoom(); }, 150));
+document.getElementById('equipOnlyMissing').addEventListener('change', (e)=>{
+  APP.equipOnlyMissing = e.target.checked;
+  populateEquipLocalSelect();
+  renderSelectedRoom();
+});
 
 /* =====================================================================
    OUTILS — onglets
@@ -2149,8 +2337,8 @@ function buildWorkbook(){
         };
         for(let i=1;i<=maxN;i++){
           const u = g.units[i-1];
-          row[`QR n°${i}`] = u ? (u.identifiant_qr || '') : '';
-          row[`État n°${i}`] = (u && u.identifiant_qr) ? (()=>{ const r = APP.releves.find(x=>x.id===u.releve_id); return r ? stateInfo(r.etat).label : ''; })() : '';
+          row[`QR n°${i}`] = (u && isRealQr(u.identifiant_qr)) ? u.identifiant_qr : '';
+          row[`État n°${i}`] = (u && u.releve_id) ? (()=>{ const r = APP.releves.find(x=>x.id===u.releve_id); return r ? stateInfo(r.etat).label : ''; })() : '';
         }
         return row;
       });
@@ -2230,11 +2418,11 @@ document.getElementById('btnPurgeAll').addEventListener('click', ()=>{
    ===================================================================== */
 (async function init(){
   try{ await loadAll(); }catch(e){ console.warn('Chargement initial impossible', e); }
+  try{ await seedPreloadedChecklist(); }catch(e){ console.warn('Pré-chargement de la liste impossible', e); }
   loadSettingsForm();
   renderAccueil();
-  renderStateGrid('conforme');
   initDownloads();
-  goto('accueil');
+  goto('equipements');
 })();
 </script>
 

@@ -1,0 +1,2241 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Relevé Terrain QR</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" onerror="window.__jsQRPrimaryFailed=true"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.__xlsxFailed=true"></script>
+
+<style>
+  /* ============ TOKENS ============ */
+  :root{
+    --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --surface-3:#e7ebef;
+    --border:#d4dbe1; --border-strong:#b9c3cb;
+    --text:#16222c; --text-mute:#5c6b78; --text-faint:#8a97a3;
+    --primary:#1f5c8b; --primary-strong:#153f60; --primary-tint:#e4eef6;
+    --accent:#dd7a1a; --accent-strong:#b8630f; --accent-tint:#fbead9;
+    --ok:#1f8a4c; --ok-tint:#e4f5ea;
+    --warn:#b3820f; --warn-tint:#fbf2dc;
+    --bad:#c23b3b; --bad-tint:#fbe7e7;
+    --mute-state:#6b7885; --mute-tint:#eaedf0;
+    --shadow:0 1px 2px rgba(20,32,44,.06), 0 4px 14px rgba(20,32,44,.07);
+    --shadow-lg:0 8px 30px rgba(20,32,44,.16);
+    --radius:12px; --radius-sm:8px;
+    --font-ui:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f161d; --surface:#171f27; --surface-2:#1c252e; --surface-3:#242f39;
+      --border:#2c3742; --border-strong:#3a4650;
+      --text:#eaf0f4; --text-mute:#a4b1bc; --text-faint:#77848f;
+      --primary:#5e9bcf; --primary-strong:#7db0da; --primary-tint:#1b2c3a;
+      --accent:#f0964a; --accent-strong:#f5ab6c; --accent-tint:#332312;
+      --ok:#4cbb7d; --ok-tint:#12271c;
+      --warn:#e0b64e; --warn-tint:#2c260f;
+      --bad:#e26a6a; --bad-tint:#301616;
+      --mute-state:#93a0ab; --mute-tint:#232b32;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.3);
+      --shadow-lg:0 8px 30px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f161d; --surface:#171f27; --surface-2:#1c252e; --surface-3:#242f39;
+    --border:#2c3742; --border-strong:#3a4650;
+    --text:#eaf0f4; --text-mute:#a4b1bc; --text-faint:#77848f;
+    --primary:#5e9bcf; --primary-strong:#7db0da; --primary-tint:#1b2c3a;
+    --accent:#f0964a; --accent-strong:#f5ab6c; --accent-tint:#332312;
+    --ok:#4cbb7d; --ok-tint:#12271c;
+    --warn:#e0b64e; --warn-tint:#2c260f;
+    --bad:#e26a6a; --bad-tint:#301616;
+    --mute-state:#93a0ab; --mute-tint:#232b32;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.3);
+    --shadow-lg:0 8px 30px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  [hidden]{display:none!important;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font-ui);}
+  #app{max-width:640px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;background:var(--bg);}
+  h1,h2,h3{font-family:var(--font-ui);text-wrap:balance;margin:0;}
+  button{font-family:inherit;}
+  input,select,textarea{font-family:inherit;}
+  ::selection{background:var(--accent-tint);}
+
+  /* ============ TOP BAR ============ */
+  .topbar{
+    position:sticky;top:env(safe-area-inset-top,0px);z-index:20;
+    background:var(--surface);border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:10px;padding:12px 16px;
+  }
+  .topbar .back{
+    width:34px;height:34px;border-radius:99px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;
+  }
+  .topbar h1{font-size:17px;font-weight:700;flex:1;letter-spacing:-.01em;}
+  .topbar .sub{font-size:11px;color:var(--text-mute);font-weight:500;}
+  .icon-btn{
+    width:34px;height:34px;border-radius:99px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--text);display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer;
+  }
+  .icon-btn:active{background:var(--surface-3);}
+
+  /* ============ CONTENT ============ */
+  main{flex:1;padding:16px 16px calc(96px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;}
+  section[data-screen]{display:none;flex-direction:column;gap:14px;}
+  section[data-screen].active{display:flex;}
+
+  /* ============ BOTTOM NAV ============ */
+  nav.tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:var(--surface);border-top:1px solid var(--border);
+    padding:6px 10px calc(8px + env(safe-area-inset-bottom,0px));
+    display:flex;justify-content:center;
+  }
+  .tabbar-inner{max-width:640px;width:100%;display:flex;gap:4px;}
+  .tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;
+    border:none;background:none;color:var(--text-faint);border-radius:var(--radius-sm);cursor:pointer;
+  }
+  .tab svg{width:21px;height:21px;}
+  .tab span{font-size:10.5px;font-weight:600;}
+  .tab.active{color:var(--primary);}
+  .tab.scan-tab{color:var(--accent);}
+  .tab.scan-tab.active{color:var(--accent-strong);}
+
+  /* ============ CARDS / GENERIC ============ */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);}
+  .card-flat{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;}
+  .hero{
+    background:linear-gradient(155deg,var(--primary-strong),var(--primary));
+    color:#fff;border-radius:var(--radius);padding:20px 18px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;opacity:.85;}
+  .hero h2{font-size:21px;font-weight:800;}
+  .hero p{margin:2px 0 0;font-size:13px;opacity:.9;}
+  .hero .stats{display:flex;gap:18px;margin-top:12px;}
+  .hero .stat b{display:block;font-family:var(--font-mono);font-size:22px;font-variant-numeric:tabular-nums;}
+  .hero .stat span{font-size:10.5px;opacity:.85;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .action-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;box-shadow:var(--shadow);
+  }
+  .action-card:active{background:var(--surface-2);}
+  .action-card .ic{
+    width:34px;height:34px;border-radius:9px;background:var(--primary-tint);color:var(--primary);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .action-card.accent .ic{background:var(--accent-tint);color:var(--accent-strong);}
+  .action-card b{font-size:13.5px;font-weight:700;}
+  .action-card small{font-size:11.5px;color:var(--text-mute);}
+
+  .section-title{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-mute);margin:2px 0 -4px;}
+
+  /* ============ BUTTONS ============ */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);
+    font-size:14px;font-weight:600;padding:11px 16px;cursor:pointer;line-height:1.2;
+  }
+  .btn:active{background:var(--surface-2);}
+  .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .btn-primary:active{background:var(--primary-strong);}
+  .btn-accent{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .btn-accent:active{background:var(--accent-strong);}
+  .btn-danger{background:var(--bad);border-color:var(--bad);color:#fff;}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--primary);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:7px 11px;font-size:12.5px;}
+  .btn[disabled]{opacity:.5;pointer-events:none;}
+
+  /* ============ FORMS ============ */
+  .field{display:flex;flex-direction:column;gap:5px;}
+  .field label{font-size:12px;font-weight:600;color:var(--text-mute);}
+  .field .req{color:var(--accent-strong);}
+  .field input[type=text],.field input[type=number],.field input[type=date],.field input[type=time],
+  .field select,.field textarea{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:10px 11px;font-size:14.5px;color:var(--text);width:100%;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:2px solid var(--primary);outline-offset:-1px;}
+  .field textarea{resize:vertical;min-height:64px;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mono{font-family:var(--font-mono);}
+  fieldset{border:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px;}
+  legend{padding:0;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-mute);margin-bottom:2px;}
+
+  .state-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .state-opt{
+    border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:9px 10px;
+    display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface-2);
+  }
+  .state-opt input{accent-color:var(--primary);}
+  .state-opt .dot{width:9px;height:9px;border-radius:99px;flex:none;}
+  .state-opt.checked{border-color:var(--chip-c);background:var(--chip-tint);}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;}
+  .chip .dot{width:7px;height:7px;border-radius:99px;}
+
+  /* ============ LIST ============ */
+  .search-bar{display:flex;gap:8px;}
+  .search-bar input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;font-size:14px;color:var(--text);}
+  .filter-row{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px;}
+  .filter-chip{
+    flex:none;font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-mute);cursor:pointer;white-space:nowrap;
+  }
+  .filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+  .releve-item{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 13px;
+    display:flex;flex-direction:column;gap:6px;cursor:pointer;box-shadow:var(--shadow);
+  }
+  .releve-item .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .releve-item .loc{font-size:14px;font-weight:700;}
+  .releve-item .id{font-family:var(--font-mono);font-size:11px;color:var(--text-mute);word-break:break-all;}
+  .releve-item .meta{font-size:12px;color:var(--text-mute);}
+  .empty{padding:34px 16px;text-align:center;color:var(--text-mute);display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .empty svg{width:38px;height:38px;opacity:.5;}
+  .empty b{color:var(--text);font-size:14px;}
+  .empty small{font-size:12.5px;}
+
+  /* ============ ÉQUIPEMENTS (suivi par unité) ============ */
+  .local-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:9px;}
+  .local-card .lc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .local-card .lc-head b{font-size:14px;font-weight:700;}
+  .local-card .lc-head .meta{font-size:11.5px;color:var(--text-mute);}
+  .local-card .lc-progress{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--text-mute);white-space:nowrap;}
+  .unit-list{display:flex;flex-direction:column;gap:6px;}
+  .unit-row{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:var(--radius-sm);
+    background:var(--surface-2);border:1px solid var(--border);cursor:pointer;
+  }
+  .unit-row.filled{background:var(--ok-tint);border-color:transparent;}
+  .unit-row .u-label{font-size:12.5px;font-weight:700;}
+  .unit-row .u-id{font-family:var(--font-mono);font-size:11px;color:var(--text-mute);word-break:break-all;}
+  .unit-row .u-status{font-size:11px;font-weight:700;color:var(--accent-strong);white-space:nowrap;}
+  .unit-row.filled .u-status{color:var(--ok);}
+
+  /* ============ SCANNER ============ */
+  .scan-frame{
+    position:relative;aspect-ratio:3/4;max-height:60vh;border-radius:var(--radius);overflow:hidden;
+    background:#0b1117;box-shadow:var(--shadow);
+  }
+  .scan-frame video{width:100%;height:100%;object-fit:cover;}
+  .scan-reticle{
+    position:absolute;inset:14% 12%;border:2.5px solid var(--accent);border-radius:16px;
+    box-shadow:0 0 0 999px rgba(0,0,0,.34);pointer-events:none;
+  }
+  .scan-status{
+    position:absolute;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
+    background:linear-gradient(0deg,rgba(0,0,0,.6),transparent);color:#fff;font-size:12.5px;font-weight:600;text-align:center;
+  }
+  .scan-placeholder{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:100%;color:#9fb0bd;padding:20px;text-align:center;
+  }
+  .scan-placeholder svg{width:40px;height:40px;opacity:.6;}
+  .divider-or{display:flex;align-items:center;gap:10px;color:var(--text-faint);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+  .divider-or::before,.divider-or::after{content:"";flex:1;height:1px;background:var(--border);}
+
+  /* ============ DASHBOARD ============ */
+  .progress-ring-wrap{display:flex;align-items:center;gap:16px;}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;box-shadow:var(--shadow);}
+  .kpi b{display:block;font-family:var(--font-mono);font-size:24px;font-variant-numeric:tabular-nums;}
+  .kpi span{font-size:11.5px;color:var(--text-mute);font-weight:600;}
+  .bar-row{display:flex;align-items:center;gap:9px;font-size:12.5px;}
+  .bar-row .label{width:96px;flex:none;color:var(--text-mute);font-weight:600;}
+  .bar-track{flex:1;height:8px;border-radius:99px;background:var(--surface-3);overflow:hidden;}
+  .bar-fill{height:100%;border-radius:99px;}
+  .bar-row .val{width:30px;flex:none;text-align:right;font-family:var(--font-mono);font-weight:600;}
+  table.etage-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.etage-table th{text-align:left;color:var(--text-mute);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:0 6px 6px;}
+  table.etage-table td{padding:8px 6px;border-top:1px solid var(--border);}
+  table.etage-table td.num{font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums;}
+  .table-scroll{overflow-x:auto;}
+
+  /* ============ TOOLS SCREEN ============ */
+  .tool-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid var(--border);}
+  .tool-row:first-child{border-top:none;}
+  .tool-row .txt b{font-size:13.5px;font-weight:700;display:block;}
+  .tool-row .txt small{font-size:12px;color:var(--text-mute);}
+  .danger-zone{border:1.5px dashed var(--bad);border-radius:var(--radius);padding:14px;background:var(--bad-tint);}
+
+  /* ============ IMPORT PREVIEW TABLE ============ */
+  .import-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .import-table th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:6px;font-size:10.5px;text-transform:uppercase;color:var(--text-mute);}
+  .import-table td{padding:3px;border-top:1px solid var(--border);}
+  .import-table input{width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;border-radius:6px;font-size:12px;color:var(--text);}
+  .import-table input:focus{border-color:var(--primary);background:var(--surface-2);}
+  .import-table td.num input{font-family:var(--font-mono);text-align:right;}
+  .import-scroll{max-height:44vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm);}
+
+  /* ============ MODAL / SHEET ============ */
+  .overlay{
+    position:fixed;inset:0;background:rgba(10,16,22,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;
+  }
+  .overlay[hidden]{display:none;}
+  .sheet{
+    width:100%;max-width:640px;background:var(--surface);border-radius:18px 18px 0 0;
+    padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:var(--shadow-lg);
+    display:flex;flex-direction:column;gap:12px;max-height:85vh;overflow:auto;
+  }
+  .sheet h3{font-size:16px;font-weight:800;}
+  .sheet p{margin:0;font-size:13.5px;color:var(--text-mute);line-height:1.45;}
+  .sheet .actions{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+
+  .toast{
+    position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+    background:var(--text);color:var(--bg);font-size:13px;font-weight:600;padding:10px 16px;border-radius:99px;
+    box-shadow:var(--shadow-lg);z-index:60;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+  .sig-pad{width:100%;height:130px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);touch-action:none;}
+  .photo-preview{width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-sm);border:1px solid var(--border);}
+  .hidden-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;}
+
+  a{color:var(--primary);}
+</style>
+
+<div id="app">
+  <header class="topbar">
+    <button class="back" id="btnBack" hidden aria-label="Retour">
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div style="flex:1">
+      <h1 id="screenTitle">Relevé Terrain QR</h1>
+      <div class="sub" id="screenSub">—</div>
+    </div>
+    <button class="icon-btn" id="btnTools" aria-label="Outils">
+      <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M10.3 3.6a1.7 1.7 0 013.4 0l.1.6a1.7 1.7 0 002.4 1.3l.5-.3a1.7 1.7 0 012.3 2.3l-.3.5a1.7 1.7 0 001.3 2.4l.6.1a1.7 1.7 0 010 3.4l-.6.1a1.7 1.7 0 00-1.3 2.4l.3.5a1.7 1.7 0 01-2.3 2.3l-.5-.3a1.7 1.7 0 00-2.4 1.3l-.1.6a1.7 1.7 0 01-3.4 0l-.1-.6a1.7 1.7 0 00-2.4-1.3l-.5.3a1.7 1.7 0 01-2.3-2.3l.3-.5a1.7 1.7 0 00-1.3-2.4l-.6-.1a1.7 1.7 0 010-3.4l.6-.1a1.7 1.7 0 001.3-2.4l-.3-.5a1.7 1.7 0 012.3-2.3l.5.3a1.7 1.7 0 002.4-1.3l.1-.6z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+    </button>
+  </header>
+
+  <main id="main">
+
+    <!-- ===================== ACCUEIL ===================== -->
+    <section data-screen="accueil" class="active">
+      <div class="hero">
+        <div class="eyebrow">Aujourd'hui</div>
+        <h2 id="heroSite">Sélectionnez un chantier</h2>
+        <p id="heroSub">Importez une liste d'équipements ou scannez directement un QR code.</p>
+        <div class="stats">
+          <div class="stat"><b id="heroRelCount">0</b><span>relevés</span></div>
+          <div class="stat"><b id="heroAttCount">0</b><span>équipements attendus</span></div>
+          <div class="stat"><b id="heroAnoCount">0</b><span>anomalies</span></div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <button class="action-card accent" data-nav="scanner">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M4 8V5.5A1.5 1.5 0 015.5 4H8M16 4h2.5A1.5 1.5 0 0120 5.5V8M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16M8 20H5.5A1.5 1.5 0 014 18.5V16M4 12h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+          <b>Scanner un QR code</b>
+          <small>Nouveau relevé terrain</small>
+        </button>
+        <button class="action-card" data-nav="liste">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M8 6h12M8 12h12M8 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <b>Consulter les relevés</b>
+          <small id="accCountListe">0 fiche(s)</small>
+        </button>
+        <button class="action-card" data-nav="dashboard">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <b>Tableau de bord</b>
+          <small>Avancement du contrôle</small>
+        </button>
+        <button class="action-card" data-nav="outils" data-tool-tab="import">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 4v11m0 0l4-4m-4 4l-4-4M4 18v1.5A1.5 1.5 0 005.5 21h13a1.5 1.5 0 001.5-1.5V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <b>Importer un Excel</b>
+          <small>Liste théorique des équipements</small>
+        </button>
+        <button class="action-card" data-nav="equipements" style="grid-column:1/-1;">
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 6.5l.7.7L5.8 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <b>Équipements attendus — détail par local</b>
+          <small id="accCountEquip">Tête par tête, à associer au scan</small>
+        </button>
+      </div>
+
+      <div class="section-title">Raccourcis</div>
+      <div class="card-flat" style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-block" data-nav="outils" data-tool-tab="export">Exporter les relevés vers Excel</button>
+        <button class="btn btn-ghost btn-block" data-nav="outils" data-tool-tab="reglages">Réglages · technicien</button>
+      </div>
+    </section>
+
+    <!-- ===================== SCANNER ===================== -->
+    <section data-screen="scanner">
+      <div class="card-flat" id="scanLocationBox" hidden style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:11px;color:var(--text-mute);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Où êtes-vous ?</div>
+        <div class="field-row">
+          <div class="field"><label for="scanEtageSelect">Étage</label><select id="scanEtageSelect"><option value="">— Choisir —</option></select></div>
+          <div class="field"><label for="scanLocalSelect">Local</label><select id="scanLocalSelect"><option value="">— Choisir —</option></select></div>
+        </div>
+        <div id="scanLocationProgress" style="font-size:12px;color:var(--text-mute);"></div>
+      </div>
+      <div class="card-flat" id="scanTargetBox" hidden style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-mute);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Cible du scan</div>
+          <div style="font-size:13.5px;font-weight:700;" id="scanTargetLabel"></div>
+        </div>
+        <button class="btn btn-sm" id="btnClearTarget">Annuler la cible</button>
+      </div>
+      <div class="scan-frame" id="scanFrame">
+        <video id="scanVideo" playsinline muted hidden></video>
+        <canvas id="scanCanvas" hidden></canvas>
+        <div class="scan-placeholder" id="scanPlaceholder">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V5.5A1.5 1.5 0 015.5 4H8M16 4h2.5A1.5 1.5 0 0120 5.5V8M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16M8 20H5.5A1.5 1.5 0 014 18.5V16M4 12h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <div><b style="color:#e7edf2;font-size:13.5px;font-weight:700;">Caméra en veille</b><br>Appuyez sur « Démarrer la caméra »</div>
+        </div>
+        <div class="scan-reticle" id="scanReticle" hidden></div>
+        <div class="scan-status" id="scanStatus" hidden>Visez le QR code de l'équipement</div>
+      </div>
+
+      <button class="btn btn-accent btn-block" id="btnStartScan">
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Démarrer la caméra
+      </button>
+      <button class="btn btn-block" id="btnStopScan" hidden>Arrêter la caméra</button>
+
+      <div class="divider-or">ou</div>
+
+      <label class="btn btn-block" for="filePhotoScan" style="cursor:pointer;">Prendre une photo du QR code</label>
+      <input class="hidden-file" type="file" id="filePhotoScan" accept="image/*" capture="environment">
+
+      <div class="field">
+        <label for="manualId">Saisie manuelle de l'identifiant (repli si le QR est illisible)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="manualId" placeholder="ex. 24E124527059CB9C" class="mono" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;font-size:14px;color:var(--text);">
+          <button class="btn btn-primary" id="btnManualGo">Valider</button>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:var(--text-mute);line-height:1.5;margin:0;">
+        Le scanner accepte un QR code JSON (site, bâtiment, étage, local…) ou un simple identifiant texte
+        (numéro de série, EUI…) — les champs manquants sont à compléter dans la fiche.
+      </p>
+    </section>
+
+    <!-- ===================== FICHE DE RELEVÉ ===================== -->
+    <section data-screen="fiche">
+      <div class="card-flat" id="ficheContextBox" hidden>
+        <div style="font-size:12px;color:var(--text-mute);">Identifiant scanné</div>
+        <div class="mono" id="ficheIdDisplay" style="font-size:14px;font-weight:700;word-break:break-all;"></div>
+      </div>
+
+      <form id="ficheForm">
+        <fieldset>
+          <legend>Repérage</legend>
+          <div class="field-row">
+            <div class="field"><label>Date</label><input type="date" id="f_date"></div>
+            <div class="field"><label>Heure</label><input type="time" id="f_heure"></div>
+          </div>
+          <div class="field"><label>Site <span class="req">*</span></label><input type="text" id="f_site" placeholder="ex. EHPAD SEVRES"></div>
+          <div class="field-row">
+            <div class="field"><label>Bâtiment</label><input type="text" id="f_batiment"></div>
+            <div class="field"><label>Étage</label><input type="text" id="f_etage" placeholder="ex. RDC, 1er étage"></div>
+          </div>
+          <div class="field"><label>Local / repère <span class="req">*</span></label><input type="text" id="f_local" placeholder="ex. Ch1, Restaurant"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Équipement</legend>
+          <div class="field"><label>Catégorie</label><input type="text" id="f_categorie" placeholder="ex. Têtes de radiateur"></div>
+          <div class="field"><label>Type d'équipement</label><input type="text" id="f_type" placeholder="ex. Tête thermostatique connectée"></div>
+          <div class="field-row">
+            <div class="field"><label>Marque</label><input type="text" id="f_marque"></div>
+            <div class="field"><label>Modèle</label><input type="text" id="f_modele"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>N° de série / identifiant</label><input type="text" class="mono" id="f_serie"></div>
+            <div class="field"><label>Quantité</label><input type="number" min="0" step="1" id="f_quantite" value="1"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>État du contrôle</legend>
+          <div class="state-grid" id="stateGrid"></div>
+          <div class="field" style="margin-top:2px;">
+            <label style="display:flex;align-items:center;gap:8px;font-weight:600;">
+              <input type="checkbox" id="f_presence" checked style="accent-color:var(--primary);width:16px;height:16px;">
+              Équipement présent sur site
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Compléments</legend>
+          <div class="field"><label>Commentaire</label><textarea id="f_commentaire" placeholder="Observations, réserves…"></textarea></div>
+          <div class="field"><label>Technicien</label><input type="text" id="f_technicien" placeholder="Nom du technicien"></div>
+
+          <div class="field">
+            <label>Photo de l'équipement</label>
+            <div id="photoWrap"></div>
+            <label class="btn btn-sm" for="filePhotoForm" style="cursor:pointer;align-self:flex-start;">Ajouter une photo</label>
+            <input class="hidden-file" type="file" id="filePhotoForm" accept="image/*" capture="environment">
+          </div>
+
+          <div class="field">
+            <label>Signature (facultatif)</label>
+            <canvas class="sig-pad" id="sigPad"></canvas>
+            <button type="button" class="btn btn-sm" id="btnClearSig" style="align-self:flex-start;">Effacer la signature</button>
+          </div>
+        </fieldset>
+
+        <div style="display:flex;gap:10px;">
+          <button type="button" class="btn" id="btnFicheCancel" style="flex:1;">Annuler</button>
+          <button type="submit" class="btn btn-primary" style="flex:2;">Enregistrer le relevé</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ===================== LISTE DES RELEVÉS ===================== -->
+    <section data-screen="liste">
+      <div class="search-bar">
+        <input type="text" id="searchListe" placeholder="Rechercher : site, local, identifiant…">
+      </div>
+      <div class="filter-row" id="filterEtat"></div>
+      <div id="listeResults" style="display:flex;flex-direction:column;gap:9px;"></div>
+    </section>
+
+    <!-- ===================== TABLEAU DE BORD ===================== -->
+    <section data-screen="dashboard">
+      <div class="card">
+        <div class="progress-ring-wrap">
+          <svg width="84" height="84" viewBox="0 0 84 84">
+            <circle cx="42" cy="42" r="36" fill="none" stroke="var(--surface-3)" stroke-width="9"/>
+            <circle id="dashRing" cx="42" cy="42" r="36" fill="none" stroke="var(--primary)" stroke-width="9" stroke-linecap="round" transform="rotate(-90 42 42)" stroke-dasharray="226" stroke-dashoffset="226"/>
+            <text id="dashRingPct" x="42" y="47" text-anchor="middle" font-family="IBM Plex Mono" font-size="16" font-weight="600" fill="var(--text)">0%</text>
+          </svg>
+          <div style="flex:1;">
+            <div style="font-size:13px;color:var(--text-mute);font-weight:600;">Avancement du contrôle</div>
+            <div style="font-size:22px;font-weight:800;" id="dashProgressLabel">0 / 0 équipements</div>
+            <div style="font-size:12px;color:var(--text-mute);" id="dashRestant">— restants</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><b id="kpiConforme">0</b><span>Conformes</span></div>
+        <div class="kpi"><b id="kpiControler">0</b><span>À contrôler</span></div>
+        <div class="kpi"><b id="kpiRemplacer">0</b><span>À remplacer</span></div>
+        <div class="kpi"><b id="kpiAbsent">0</b><span>Absents</span></div>
+        <div class="kpi"><b id="kpiHS">0</b><span>Hors service</span></div>
+        <div class="kpi"><b id="kpiNA">0</b><span>Non accessibles</span></div>
+      </div>
+
+      <div class="section-title">Répartition par état</div>
+      <div class="card" style="display:flex;flex-direction:column;gap:9px;" id="dashBars"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="section-title" style="margin:0;">Avancement par site / étage</div>
+        <button class="btn btn-ghost btn-sm" data-nav="equipements">Détail tête par tête ›</button>
+      </div>
+      <div class="card table-scroll">
+        <table class="etage-table" id="etageTable">
+          <thead><tr><th>Site</th><th>Étage</th><th>Attendu</th><th>Relevé</th><th>Restant</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== ÉQUIPEMENTS ATTENDUS (suivi unité par unité) ===================== -->
+    <section data-screen="equipements">
+      <p style="font-size:12.5px;color:var(--text-mute);margin:0;line-height:1.5;">
+        Chaque local est détaillé unité par unité selon le « nbre » importé (ex. Ch1 · nbre 2 → Tête n°1 et Tête n°2).
+        Appuyez sur une unité non scannée pour l'associer directement au prochain QR code lu.
+      </p>
+      <div class="search-bar">
+        <input type="text" id="searchEquip" placeholder="Rechercher : local, étage…">
+      </div>
+      <div class="filter-row" id="filterEquipEtage"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;">
+        <input type="checkbox" id="equipOnlyMissing" style="accent-color:var(--primary);width:16px;height:16px;">
+        N'afficher que les unités non scannées
+      </label>
+      <div id="equipResults" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </section>
+
+    <!-- ===================== OUTILS ===================== -->
+    <section data-screen="outils">
+      <div class="filter-row" id="toolTabs">
+        <button class="filter-chip active" data-tool="import">Import</button>
+        <button class="filter-chip" data-tool="export">Export</button>
+        <button class="filter-chip" data-tool="reglages">Réglages</button>
+        <button class="filter-chip" data-tool="danger">Données</button>
+      </div>
+
+      <!-- IMPORT -->
+      <div class="tool-pane" data-tool-pane="import">
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+          <b style="font-size:14px;">Importer la liste théorique des équipements</b>
+          <p style="margin:0;font-size:12.5px;color:var(--text-mute);line-height:1.5;">
+            Sélectionnez votre fichier Excel de chantier (organisation par bâtiment / étage / local / catégorie / quantité).
+            L'application reconnaît automatiquement les regroupements ; vous pourrez corriger l'aperçu avant de valider.
+          </p>
+          <label class="btn btn-primary" for="fileImportExcel" style="cursor:pointer;">Choisir un fichier .xlsx</label>
+          <input class="hidden-file" type="file" id="fileImportExcel" accept=".xlsx,.xls,.csv">
+          <div id="importSummary" style="font-size:12.5px;color:var(--text-mute);"></div>
+        </div>
+
+        <div class="card" id="importPreviewCard" hidden style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+          <b style="font-size:14px;">Aperçu — <span id="importCount">0</span> équipement(s) détecté(s)</b>
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <div class="field" style="flex:1;"><label>Site à appliquer aux lignes vides</label><input type="text" id="importSiteFill" placeholder="ex. EHPAD SEVRES"></div>
+            <button class="btn btn-sm" id="btnApplySiteFill">Appliquer</button>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;">
+            <input type="checkbox" id="importReplace" style="accent-color:var(--primary);width:16px;height:16px;">
+            Remplacer la liste existante (au lieu de la compléter)
+          </label>
+          <div class="import-scroll">
+            <table class="import-table">
+              <thead><tr><th style="width:26px;"></th><th>Site</th><th>Étage</th><th>Local</th><th>Catégorie</th><th>Type</th><th>Qté</th></tr></thead>
+              <tbody id="importTableBody"></tbody>
+            </table>
+          </div>
+          <div id="importIgnoredNote" style="font-size:11.5px;color:var(--text-faint);"></div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn" id="btnImportCancel" style="flex:1;">Annuler</button>
+            <button class="btn btn-primary" id="btnImportConfirm" style="flex:2;">Valider l'import</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="tool-pane" data-tool-pane="export" hidden>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+          <b style="font-size:14px;">Exporter vers Excel</b>
+          <p style="margin:0;font-size:12.5px;color:var(--text-mute);line-height:1.5;">
+            Génère un classeur avec les feuilles <i>Relevés</i>, <i>Synthèse</i>, <i>Par étage</i>, <i>Anomalies</i>,
+            <i>Équipements attendus</i>, <i>Suivi par local</i> (une colonne QR par tête, ajustée au « nbre » prévu)
+            et <i>Historique</i>. Pensez à exporter régulièrement : les données ne sont conservées que dans ce navigateur.
+          </p>
+          <button class="btn btn-accent btn-block" id="btnExportExcel">Générer et télécharger le fichier Excel</button>
+          <div id="exportStatus" style="font-size:12px;color:var(--text-mute);"></div>
+        </div>
+      </div>
+
+      <!-- REGLAGES -->
+      <div class="tool-pane" data-tool-pane="reglages" hidden>
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="field"><label>Nom du technicien par défaut</label><input type="text" id="settingTechnicien" placeholder="ex. Jean-Loup Gerard"></div>
+          <div class="field"><label>Site actif par défaut</label><input type="text" id="settingSite" placeholder="ex. EHPAD SEVRES"></div>
+          <button class="btn btn-primary" id="btnSaveSettings">Enregistrer les réglages</button>
+        </div>
+      </div>
+
+      <!-- DANGER -->
+      <div class="tool-pane" data-tool-pane="danger" hidden>
+        <div class="danger-zone" style="display:flex;flex-direction:column;gap:10px;">
+          <b style="font-size:13.5px;color:var(--bad);">Zone de suppression</b>
+          <p style="margin:0;font-size:12.5px;color:var(--text-mute);">
+            Utile pour effacer des données de test avant une utilisation réelle. Cette action est irréversible ;
+            exportez vers Excel avant de continuer si besoin.
+          </p>
+          <button class="btn btn-danger" id="btnPurgeReleves">Supprimer tous les relevés</button>
+          <button class="btn btn-danger" id="btnPurgeChecklist">Supprimer la liste des équipements attendus</button>
+          <button class="btn btn-danger" id="btnPurgeAll">Tout réinitialiser (relevés + liste + historique)</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab active" data-nav="accueil">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v9a1 1 0 001 1h3v-6h4v6h3a1 1 0 001-1v-9" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span>Accueil</span>
+      </button>
+      <button class="tab scan-tab" data-nav="scanner">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V5.5A1.5 1.5 0 015.5 4H8M16 4h2.5A1.5 1.5 0 0120 5.5V8M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16M8 20H5.5A1.5 1.5 0 014 18.5V16M4 12h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Scanner</span>
+      </button>
+      <button class="tab" data-nav="liste">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M8 6h12M8 12h12M8 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Relevés</span>
+      </button>
+      <button class="tab" data-nav="dashboard">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10M12 20V4M20 20v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Bilan</span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="overlay" id="modalOverlay" hidden>
+    <div class="sheet" id="modalSheet"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* =====================================================================
+   RELEVÉ TERRAIN QR — application de contrôle d'équipements techniques
+   Toutes les données sont stockées LOCALEMENT dans ce navigateur
+   (IndexedDB). L'export Excel sert de sauvegarde et de livrable.
+   ===================================================================== */
+
+/* --------------------------- Utilitaires --------------------------- */
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-'+Date.now()+'-'+Math.random().toString(16).slice(2);
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function nowHM(){ const d=new Date(); return d.toTimeString().slice(0,5); }
+function fmtDateFR(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-'); return d && m && y ? `${d}/${m}/${y}` : iso;
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function debounce(fn, ms){
+  let h; return (...a)=>{ clearTimeout(h); h=setTimeout(()=>fn(...a), ms); };
+}
+
+/* --------------------------- États possibles ------------------------ */
+const STATES = [
+  { key:'conforme',       label:'Conforme',        var:'--ok',         tint:'--ok-tint' },
+  { key:'a_controler',    label:'À contrôler',     var:'--warn',       tint:'--warn-tint' },
+  { key:'a_remplacer',    label:'À remplacer',     var:'--bad',        tint:'--bad-tint' },
+  { key:'absent',         label:'Absent',          var:'--bad',        tint:'--bad-tint' },
+  { key:'hors_service',   label:'Hors service',    var:'--mute-state', tint:'--mute-tint' },
+  { key:'non_accessible', label:'Non accessible',  var:'--mute-state', tint:'--mute-tint' },
+];
+function stateInfo(key){ return STATES.find(s=>s.key===key) || STATES[0]; }
+
+/* =====================================================================
+   COUCHE DE STOCKAGE — IndexedDB (releves, checklist, historique, settings)
+   ===================================================================== */
+const DB_NAME = 'releveqr_db_v1';
+const DB_VERSION = 2;
+let _dbp = null;
+function openDB(){
+  if(_dbp) return _dbp;
+  _dbp = new Promise((resolve, reject)=>{
+    try{
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = (e)=>{
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains('releves')) db.createObjectStore('releves', {keyPath:'id'});
+        if(!db.objectStoreNames.contains('checklist')) db.createObjectStore('checklist', {keyPath:'id'});
+        if(!db.objectStoreNames.contains('historique')) db.createObjectStore('historique', {keyPath:'id'});
+        if(!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', {keyPath:'key'});
+        // "unites" : chaque équipement individuel attendu (ex. tête n°1, tête n°2
+        // d'un même local) généré à l'import à partir du "nbre" de la liste théorique.
+        if(!db.objectStoreNames.contains('unites')) db.createObjectStore('unites', {keyPath:'id'});
+      };
+      req.onsuccess = ()=> resolve(req.result);
+      req.onerror = ()=> reject(req.error);
+    }catch(err){ reject(err); }
+  });
+  return _dbp;
+}
+async function idbAll(store){
+  try{
+    const db = await openDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(store, 'readonly');
+      const rq = tx.objectStore(store).getAll();
+      rq.onsuccess = ()=> res(rq.result || []);
+      rq.onerror = ()=> rej(rq.error);
+    });
+  }catch(e){ console.warn('idbAll failed', store, e); return []; }
+}
+async function idbPut(store, value){
+  try{
+    const db = await openDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put(value);
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }catch(e){ console.warn('idbPut failed', store, e); toast('Erreur d’enregistrement local'); return false; }
+}
+async function idbBulkPut(store, values){
+  try{
+    const db = await openDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(store, 'readwrite');
+      const os = tx.objectStore(store);
+      values.forEach(v=>os.put(v));
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }catch(e){ console.warn('idbBulkPut failed', store, e); return false; }
+}
+async function idbDelete(store, id){
+  try{
+    const db = await openDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(id);
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }catch(e){ console.warn('idbDelete failed', store, e); return false; }
+}
+async function idbClear(store){
+  try{
+    const db = await openDB();
+    return await new Promise((res, rej)=>{
+      const tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).clear();
+      tx.oncomplete = ()=> res(true);
+      tx.onerror = ()=> rej(tx.error);
+    });
+  }catch(e){ console.warn('idbClear failed', store, e); return false; }
+}
+
+/* =====================================================================
+   ÉTAT DE L'APPLICATION (cache mémoire, resynchronisé depuis IndexedDB)
+   ===================================================================== */
+const APP = {
+  screen: 'accueil',
+  releves: [],       // tous les relevés (historique de doublons conservé)
+  checklist: [],      // équipements théoriques importés (lignes agrégées "local + nbre")
+  unites: [],          // équipements individuels générés à partir du "nbre" (ex. Tête n°1, n°2…)
+  historique: [],
+  settings: { technicien:'', site:'' },
+  currentFiche: null,     // relevé en cours d'édition (objet complet)
+  currentPhoto: null,     // base64 en cours pour la fiche ouverte
+  pendingScan: null,      // données brutes issues du dernier scan avant résolution du doublon
+  pendingUnit: null,       // unité précise ciblée avant un scan (depuis l'écran "Équipements")
+  scanLocation: null,      // étage/local choisis sur l'écran Scanner (contexte ambiant pour une série de scans)
+  importItems: [],        // aperçu d'import en cours
+  importIgnored: 0,
+  listeFilterEtat: 'tous',
+  equipFilterEtage: 'tous',
+  equipOnlyMissing: false,
+};
+
+async function loadAll(){
+  const [releves, checklist, unites, historique, settingsRows] = await Promise.all([
+    idbAll('releves'), idbAll('checklist'), idbAll('unites'), idbAll('historique'), idbAll('settings')
+  ]);
+  APP.releves = releves;
+  APP.checklist = checklist;
+  APP.unites = unites;
+  APP.historique = historique;
+  settingsRows.forEach(r=>{ APP.settings[r.key] = r.value; });
+}
+
+/* Libellé d'une unité individuelle : "Tête n°1" pour les radiateurs/têtes
+   thermostatiques, générique "{type} n°N" sinon. */
+function unitLabel(u){
+  const txt = ((u.categorie||'')+' '+(u.type_equipement||'')).toLowerCase();
+  const base = /radiateur|t[êe]te therm/.test(txt) ? 'Tête' : (u.type_equipement || u.categorie || 'Équipement');
+  return `${base} n°${u.index}`;
+}
+
+/* Dernier relevé (le plus récent) par identifiant QR — sert pour les
+   compteurs, le tableau de bord et la détection de doublons. */
+function latestByIdentifiant(){
+  const map = new Map();
+  for(const r of APP.releves){
+    const prev = map.get(r.identifiant_qr);
+    if(!prev || (r.date_modification||'') > (prev.date_modification||'')) map.set(r.identifiant_qr, r);
+  }
+  return [...map.values()];
+}
+
+/* =====================================================================
+   NAVIGATION
+   ===================================================================== */
+const SCREEN_TITLES = {
+  accueil:   ['Relevé Terrain QR', 'Contrôle des équipements techniques'],
+  scanner:   ['Scanner', 'Lecture d’un QR code'],
+  fiche:     ['Fiche de relevé', 'Complétez puis enregistrez'],
+  liste:     ['Relevés', 'Historique des contrôles'],
+  dashboard: ['Tableau de bord', 'Avancement du contrôle'],
+  equipements: ['Équipements attendus', 'Suivi tête par tête, local par local'],
+  outils:    ['Outils', 'Import · export · réglages'],
+};
+function goto(screen, opts){
+  opts = opts || {};
+  if(screen === 'scanner' && APP.screen === 'scanner'){ /* no-op */ }
+  if(APP.screen === 'scanner' && screen !== 'scanner') stopScanner();
+  APP.screen = screen;
+  document.querySelectorAll('section[data-screen]').forEach(s=>{
+    s.classList.toggle('active', s.dataset.screen === screen);
+  });
+  document.querySelectorAll('.tab[data-nav]').forEach(t=>{
+    t.classList.toggle('active', t.dataset.nav === screen);
+  });
+  const meta = SCREEN_TITLES[screen] || ['',''];
+  document.getElementById('screenTitle').textContent = meta[0];
+  document.getElementById('screenSub').textContent = meta[1];
+  document.getElementById('btnBack').hidden = (screen === 'accueil');
+  if(screen === 'liste') renderListe();
+  if(screen === 'dashboard') renderDashboard();
+  if(screen === 'accueil') renderAccueil();
+  if(screen === 'equipements') renderEquipements();
+  if(screen === 'scanner') renderScanContext();
+  if(screen !== 'scanner' && screen !== 'fiche') APP.pendingUnit = null;
+  if(screen === 'outils' && opts.toolTab) selectToolTab(opts.toolTab);
+  window.scrollTo(0,0);
+}
+document.addEventListener('click', (e)=>{
+  const nav = e.target.closest('[data-nav]');
+  if(nav){
+    const tool = nav.dataset.toolTab;
+    goto(nav.dataset.nav, tool ? {toolTab:tool} : {});
+  }
+});
+document.getElementById('btnBack').addEventListener('click', ()=> goto('accueil'));
+document.getElementById('btnTools').addEventListener('click', ()=> goto('outils'));
+
+/* =====================================================================
+   ÉCRAN ACCUEIL
+   ===================================================================== */
+function renderAccueil(){
+  const latest = latestByIdentifiant();
+  const attendu = APP.unites.length || APP.checklist.reduce((s,c)=> s + (Number(c.quantite_attendue)||0), 0);
+  const anomalies = latest.filter(r=> r.etat && r.etat !== 'conforme').length;
+  document.getElementById('heroRelCount').textContent = latest.length;
+  document.getElementById('heroAttCount').textContent = attendu;
+  document.getElementById('heroAnoCount').textContent = anomalies;
+  document.getElementById('accCountListe').textContent = latest.length + ' fiche(s)';
+  if(APP.unites.length){
+    const filled = APP.unites.filter(u=> u.identifiant_qr).length;
+    document.getElementById('accCountEquip').textContent = `${filled}/${APP.unites.length} unités scannées`;
+  }
+  const site = APP.settings.site || (APP.checklist[0] && APP.checklist[0].site) || '';
+  document.getElementById('heroSite').textContent = site ? site : 'Sélectionnez un chantier';
+  document.getElementById('heroSub').textContent = site
+    ? `${attendu} équipement(s) attendu(s) · ${latest.length} relevé(s) effectué(s)`
+    : 'Importez une liste d’équipements ou scannez directement un QR code.';
+}
+
+/* =====================================================================
+   ÉCRAN SCANNER — caméra en direct (jsQR) + photo unique + saisie manuelle
+   ===================================================================== */
+let scanStream = null, scanRAF = null;
+
+/* Charge un script externe par injection dynamique (repli si la balise
+   <script> d'origine a échoué : réseau lent, CDN momentanément bloqué…). */
+function loadScriptOnce(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ()=> resolve(true);
+    s.onerror = ()=> reject(new Error('Échec de chargement : '+src));
+    document.head.appendChild(s);
+  });
+}
+
+/* Garantit que la bibliothèque jsQR est chargée avant toute tentative de
+   scan. Attend un court instant (chargement réseau en cours), puis
+   retente depuis deux sources de repli si nécessaire. Le résultat est
+   mémorisé pour ne pas relancer la vérification à chaque scan. */
+let _jsQRReady = null;
+function ensureJsQR(){
+  if(_jsQRReady) return _jsQRReady;
+  _jsQRReady = (async ()=>{
+    if(typeof jsQR === 'function') return true;
+    await new Promise(r=> setTimeout(r, 1200));
+    if(typeof jsQR === 'function') return true;
+    const fallbacks = [
+      'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js',
+      'https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.min.js',
+    ];
+    for(const url of fallbacks){
+      try{ await loadScriptOnce(url); if(typeof jsQR === 'function') return true; }
+      catch(_e){ /* on tente la source suivante */ }
+    }
+    return typeof jsQR === 'function';
+  })();
+  return _jsQRReady;
+}
+
+/* Détecte si la page s'exécute probablement dans le navigateur intégré
+   d'une appli (Messenger, Instagram, WhatsApp, LinkedIn, TikTok, WeChat…)
+   ou dans une WebView Android générique. Ces navigateurs "in-app" bloquent
+   souvent l'accès caméra de façon permanente, sans qu'aucun réglage ne
+   permette de l'autoriser : il faut alors ouvrir le lien dans le vrai
+   navigateur (Safari / Chrome). Heuristique best-effort, jamais garantie. */
+function detectRestrictedBrowser(){
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  const isAndroid = /Android/.test(ua);
+  const knownInApp = [
+    { re: /FBAN|FBAV/i, name: 'le navigateur intégré de Facebook/Messenger' },
+    { re: /Instagram/i, name: 'le navigateur intégré d’Instagram' },
+    { re: /Line\//i, name: 'le navigateur intégré de LINE' },
+    { re: /MicroMessenger/i, name: 'le navigateur intégré de WeChat' },
+    { re: /LinkedInApp/i, name: 'le navigateur intégré de LinkedIn' },
+    { re: /Twitter/i, name: 'le navigateur intégré de X/Twitter' },
+    { re: /TikTok|BytedanceWebview|musical_ly/i, name: 'le navigateur intégré de TikTok' },
+    { re: /Snapchat/i, name: 'le navigateur intégré de Snapchat' },
+  ];
+  for(const k of knownInApp){ if(k.re.test(ua)) return { inApp:true, isIOS, isAndroid, label:k.name }; }
+  // WebView Android générique : le jeton "; wv)" apparaît dans le user-agent.
+  if(isAndroid && /; ?wv\)/i.test(ua)) return { inApp:true, isIOS, isAndroid, label:'une fenêtre intégrée (WebView Android)' };
+  return { inApp:false, isIOS, isAndroid, label:null };
+}
+
+/* Construit un message d'aide détaillé et actionnable pour un refus de
+   caméra (NotAllowedError), adapté à la plateforme détectée. */
+function buildCameraDeniedGuidance(){
+  const ctx = detectRestrictedBrowser();
+  if(ctx.inApp){
+    return {
+      detail: `Ce lien semble ouvert dans ${ctx.label}, qui bloque souvent l’accès à la caméra sans possibilité de l’autoriser.\n\nOuvrez ce lien directement dans Chrome (Android) ou Safari (iPhone) :\n1. Copiez le lien avec le bouton ci-dessous.\n2. Ouvrez Chrome ou Safari.\n3. Collez le lien dans la barre d’adresse et validez.`,
+      copyLink: true,
+    };
+  }
+  if(ctx.isIOS){
+    return {
+      detail: `Autorisation caméra refusée pour cette page.\n\nSur iPhone :\n1. Réglages → Safari → Caméra → choisissez « Autoriser ».\n2. Si l’appli utilisée est Chrome : Réglages → Chrome → Appareil photo → activez l’accès.\n3. Revenez ici et appuyez sur « Réessayer ».`,
+      copyLink: false,
+    };
+  }
+  if(ctx.isAndroid){
+    return {
+      detail: `Autorisation caméra refusée pour cette page.\n\nSur Android (Chrome) :\n1. Appuyez sur l’icône ⓘ ou le cadenas à gauche de l’adresse du site.\n2. Ouvrez « Autorisations » → « Appareil photo » → « Autoriser ».\n3. Vérifiez aussi Paramètres → Applications → Chrome → Autorisations → Appareil photo.\n4. Rechargez la page puis réessayez.`,
+      copyLink: false,
+    };
+  }
+  return {
+    detail: 'Autorisation caméra refusée. Ouvrez les réglages du site (icône ⓘ ou cadenas à gauche de l’adresse), autorisez la caméra, puis rechargez la page.',
+    copyLink: false,
+  };
+}
+
+/* Affiche un état d'erreur explicite dans le cadre du scanner (bibliothèque
+   indisponible, caméra refusée, contexte non sécurisé…) avec un bouton
+   pour réessayer, plutôt qu'un simple message qui bloque l'utilisateur. */
+function showScanError(title, detail, opts){
+  opts = opts || {};
+  const placeholder = document.getElementById('scanPlaceholder');
+  placeholder.hidden = false;
+  placeholder.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4m0 4h.01M10.3 3.9L2.7 17.5A2 2 0 004.4 20.6h15.2a2 2 0 001.7-3.1L13.7 3.9a2 2 0 00-3.4 0z" stroke="#f0964a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><b style="color:#f2b385;font-size:13.5px;font-weight:700;">${esc(title)}</b><br><span style="font-size:12px;white-space:pre-line;">${esc(detail)}</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+      ${opts.retry ? '<button type="button" class="btn btn-sm" id="btnScanRetry">Réessayer</button>' : ''}
+      ${opts.copyLink ? '<button type="button" class="btn btn-sm" id="btnScanCopyLink">Copier le lien</button>' : ''}
+    </div>
+  `;
+  document.getElementById('scanVideo').hidden = true;
+  document.getElementById('scanReticle').hidden = true;
+  document.getElementById('scanStatus').hidden = true;
+  document.getElementById('btnStartScan').hidden = false;
+  document.getElementById('btnStopScan').hidden = true;
+  if(opts.retry){
+    document.getElementById('btnScanRetry').addEventListener('click', (e)=>{ e.stopPropagation(); resetScanPlaceholder(); startScanner(); });
+  }
+  if(opts.copyLink){
+    document.getElementById('btnScanCopyLink').addEventListener('click', async (e)=>{
+      e.stopPropagation();
+      try{
+        await navigator.clipboard.writeText(location.href);
+        toast('Lien copié — collez-le dans Chrome ou Safari');
+      }catch(_e){
+        toast('Copie impossible — sélectionnez le lien dans la barre d’adresse manuellement');
+      }
+    });
+  }
+}
+function resetScanPlaceholder(){
+  const placeholder = document.getElementById('scanPlaceholder');
+  placeholder.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none"><path d="M4 8V5.5A1.5 1.5 0 015.5 4H8M16 4h2.5A1.5 1.5 0 0120 5.5V8M20 16v2.5a1.5 1.5 0 01-1.5 1.5H16M8 20H5.5A1.5 1.5 0 014 18.5V16M4 12h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <div><b style="color:#e7edf2;font-size:13.5px;font-weight:700;">Caméra en veille</b><br>Appuyez sur « Démarrer la caméra »</div>
+  `;
+}
+
+async function startScanner(){
+  const video = document.getElementById('scanVideo');
+  const placeholder = document.getElementById('scanPlaceholder');
+  const reticle = document.getElementById('scanReticle');
+  const status = document.getElementById('scanStatus');
+  const canvas = document.getElementById('scanCanvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+
+  if(window.isSecureContext === false){
+    showScanError('Connexion non sécurisée', 'La caméra nécessite une page en HTTPS. Utilisez la photo ou la saisie manuelle ci-dessous.', {retry:false});
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showScanError('Caméra non disponible', 'Ce navigateur ne permet pas l’accès à la caméra ici. Utilisez « Prendre une photo » ou la saisie manuelle.', {retry:false});
+    return;
+  }
+
+  document.getElementById('btnStartScan').hidden = true;
+  resetScanPlaceholder();
+  document.getElementById('scanPlaceholder').innerHTML = '<div style="color:#9fb0bd;font-size:12.5px;">Chargement du lecteur QR…</div>';
+
+  const jsQROk = await ensureJsQR();
+  if(!jsQROk){
+    showScanError('Lecteur QR indisponible', 'La bibliothèque de scan n’a pas pu être chargée (réseau ou bloqueur de contenu). Réessayez, ou utilisez « Prendre une photo » / la saisie manuelle.', {retry:true});
+    return;
+  }
+
+  try{
+    try{
+      scanStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false });
+    }catch(err1){
+      // Repli générique si la caméra arrière n'est pas disponible (ex. ordinateur, contrainte non satisfaite)
+      scanStream = await navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+    }
+  }catch(err){
+    if(err && err.name === 'NotAllowedError'){
+      const guidance = buildCameraDeniedGuidance();
+      showScanError('Caméra indisponible', guidance.detail, {retry:true, copyLink:guidance.copyLink});
+      return;
+    }
+    let msg = 'Accès caméra refusé — utilisez la photo ou la saisie manuelle.';
+    if(err && err.name === 'NotFoundError') msg = 'Aucune caméra détectée sur cet appareil.';
+    else if(err && err.name === 'NotReadableError') msg = 'La caméra est déjà utilisée par une autre application.';
+    showScanError('Caméra indisponible', msg, {retry:true});
+    return;
+  }
+
+  resetScanPlaceholder();
+  video.srcObject = scanStream;
+  video.hidden = false; placeholder.hidden = true; reticle.hidden = false; status.hidden = false;
+  status.textContent = 'Visez le QR code de l’équipement';
+  try{ await video.play(); }catch(_e){ /* certains navigateurs déclenchent play() automatiquement */ }
+  document.getElementById('btnStartScan').hidden = true;
+  document.getElementById('btnStopScan').hidden = false;
+
+  const tick = ()=>{
+    if(!scanStream) return;
+    if(video.readyState === video.HAVE_ENOUGH_DATA){
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
+      if(code && code.data){
+        status.textContent = 'QR code lu ✓';
+        handleScanResult(code.data);
+        stopScanner();
+        return;
+      }
+    }
+    scanRAF = requestAnimationFrame(tick);
+  };
+  scanRAF = requestAnimationFrame(tick);
+}
+function stopScanner(){
+  if(scanRAF) cancelAnimationFrame(scanRAF);
+  scanRAF = null;
+  if(scanStream){ scanStream.getTracks().forEach(t=>t.stop()); scanStream = null; }
+  const video = document.getElementById('scanVideo');
+  video.hidden = true; video.srcObject = null;
+  resetScanPlaceholder();
+  document.getElementById('scanPlaceholder').hidden = false;
+  document.getElementById('scanReticle').hidden = true;
+  document.getElementById('scanStatus').hidden = true;
+  document.getElementById('btnStartScan').hidden = false;
+  document.getElementById('btnStopScan').hidden = true;
+}
+document.getElementById('btnStartScan').addEventListener('click', startScanner);
+document.getElementById('btnStopScan').addEventListener('click', stopScanner);
+
+/* Repli : photo unique décodée hors flux vidéo (plus fiable dans certains
+   contextes restreints, ex. caméra live bloquée par une politique réseau). */
+document.getElementById('filePhotoScan').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  e.target.value = '';
+  const jsQROk = await ensureJsQR();
+  if(!jsQROk){ toast('Lecteur QR indisponible — réessayez ou utilisez la saisie manuelle'); return; }
+  try{
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bitmap, 0, 0);
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(img.data, img.width, img.height);
+    if(code && code.data){ handleScanResult(code.data); }
+    else{ toast('Aucun QR code détecté sur cette photo'); }
+  }catch(err){ toast('Impossible de lire cette image'); }
+});
+
+/* Précharge le lecteur QR dès l'arrivée sur l'écran Scanner, pour que le
+   premier appui sur « Démarrer la caméra » soit déjà prêt. */
+function warmUpScanner(){ ensureJsQR(); }
+
+document.getElementById('btnManualGo').addEventListener('click', ()=>{
+  const v = document.getElementById('manualId').value.trim();
+  if(!v){ toast('Saisissez un identifiant'); return; }
+  document.getElementById('manualId').value = '';
+  handleScanResult(v);
+});
+document.getElementById('manualId').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('btnManualGo').click(); }
+});
+
+/* Sélecteur « Où êtes-vous ? » (étage puis local) : sert de contexte
+   ambiant pour une série de scans dans la même pièce, quand aucune unité
+   précise n'a été ciblée depuis l'écran Équipements. Les listes sont
+   construites à partir de la liste théorique importée. */
+function scanLocationSource(){ return APP.unites.length ? APP.unites : APP.checklist; }
+function populateEtageSelect(){
+  const sel = document.getElementById('scanEtageSelect');
+  const etages = [...new Set(scanLocationSource().map(u=> u.etage || '—'))].sort((a,b)=> a.localeCompare(b));
+  sel.innerHTML = '<option value="">— Choisir —</option>' + etages.map(e=> `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  sel.value = (APP.scanLocation && APP.scanLocation.etage) || '';
+}
+function populateLocalSelect(){
+  const sel = document.getElementById('scanLocalSelect');
+  const etage = document.getElementById('scanEtageSelect').value;
+  const locaux = etage
+    ? [...new Set(scanLocationSource().filter(u=> (u.etage||'—')===etage).map(u=> u.local))].sort((a,b)=> a.localeCompare(b))
+    : [];
+  sel.innerHTML = '<option value="">— Choisir —</option>' + locaux.map(l=> `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+  sel.disabled = !etage;
+  sel.value = (APP.scanLocation && APP.scanLocation.local) || '';
+}
+function updateScanLocationProgress(){
+  const note = document.getElementById('scanLocationProgress');
+  if(!APP.scanLocation || !APP.scanLocation.local){ note.textContent = ''; return; }
+  const units = APP.unites.filter(u=> (u.etage||'—')===APP.scanLocation.etage && u.local===APP.scanLocation.local);
+  if(!units.length){ note.textContent = 'Local hors liste théorique — les scans seront libres.'; return; }
+  const filled = units.filter(u=> u.identifiant_qr).length;
+  note.textContent = `${filled}/${units.length} unité(s) déjà scannée(s) dans ce local.`;
+}
+document.getElementById('scanEtageSelect').addEventListener('change', (e)=>{
+  const etage = e.target.value;
+  APP.scanLocation = etage ? { etage, local:'', site:'', categorie:'', type_equipement:'', batiment:'' } : null;
+  populateLocalSelect();
+  updateScanLocationProgress();
+});
+document.getElementById('scanLocalSelect').addEventListener('change', (e)=>{
+  const local = e.target.value;
+  const etage = document.getElementById('scanEtageSelect').value;
+  const src = scanLocationSource();
+  const match = src.find(u=> (u.etage||'—')===etage && u.local===local);
+  APP.scanLocation = {
+    etage, local,
+    site: match?.site || APP.settings.site || '',
+    batiment: match?.batiment || '',
+    categorie: match?.categorie || '',
+    type_equipement: match?.type_equipement || '',
+  };
+  updateScanLocationProgress();
+});
+
+/* Bandeau « cible du scan » quand on arrive depuis l'écran Équipements
+   (ex. « Ch101 · Tête n°2 ») : le prochain QR lu s'associe directement
+   à cette unité précise. Sinon, propose le sélecteur étage/local. */
+function renderScanContext(){
+  warmUpScanner();
+  const targetBox = document.getElementById('scanTargetBox');
+  const locationBox = document.getElementById('scanLocationBox');
+  if(APP.pendingUnit){
+    targetBox.hidden = false;
+    locationBox.hidden = true;
+    document.getElementById('scanTargetLabel').textContent =
+      `${APP.pendingUnit.local} · ${unitLabel(APP.pendingUnit)}`;
+  }else{
+    targetBox.hidden = true;
+    if(scanLocationSource().length){
+      locationBox.hidden = false;
+      populateEtageSelect();
+      populateLocalSelect();
+      updateScanLocationProgress();
+    }else{
+      locationBox.hidden = true;
+    }
+  }
+}
+document.getElementById('btnClearTarget').addEventListener('click', ()=>{
+  APP.pendingUnit = null; renderScanContext();
+});
+
+/* Interprète le contenu du QR : JSON structuré ou simple texte/identifiant */
+function parseScanPayload(raw){
+  let data = { identifiant: raw };
+  try{
+    const j = JSON.parse(raw);
+    if(j && typeof j === 'object'){
+      data = {
+        identifiant: j.identifiant || j.id || raw,
+        site: j.site || '', batiment: j.batiment || '', etage: j.etage || '',
+        local: j.local || '', categorie: j.categorie || '', equipement: j.equipement || '',
+        quantite: j.quantite || '',
+      };
+    }
+  }catch(_e){ /* pas du JSON : identifiant texte simple (ex. numéro de série / EUI) */ }
+  return data;
+}
+
+function handleScanResult(raw){
+  const data = parseScanPayload(raw);
+  const existing = APP.releves
+    .filter(r=> r.identifiant_qr === data.identifiant)
+    .sort((a,b)=> (b.date_modification||'').localeCompare(a.date_modification||''))[0];
+  APP.pendingScan = data;
+  if(existing){
+    openDuplicateModal(existing, data);
+  }else{
+    openFiche(buildBlankFiche(data));
+  }
+}
+
+/* Cherche dans la liste importée un équipement correspondant (aide au
+   préremplissage — rapprochement approximatif par site/étage/local). */
+function matchChecklist(data){
+  if(!data) return null;
+  return APP.checklist.find(c=>
+    (!data.local || (c.local||'').toLowerCase() === (data.local||'').toLowerCase()) &&
+    (!data.etage || (c.etage||'').toLowerCase() === (data.etage||'').toLowerCase()) &&
+    (!data.site  || (c.site ||'').toLowerCase() === (data.site ||'').toLowerCase())
+  );
+}
+
+function buildBlankFiche(data){
+  const match = matchChecklist(data || {});
+  const u = APP.pendingUnit; // unité précise ciblée depuis l'écran Équipements, le cas échéant
+  const l = (!u && APP.scanLocation && APP.scanLocation.local) ? APP.scanLocation : null; // étage/local choisis sur l'écran Scanner
+  const fiche = {
+    id: uid(),
+    identifiant_qr: (data && data.identifiant) || '',
+    date: todayISO(), heure: nowHM(),
+    site: u?.site || (data && data.site) || l?.site || match?.site || APP.settings.site || '',
+    batiment: u?.batiment || (data && data.batiment) || l?.batiment || match?.batiment || '',
+    etage: u?.etage || (data && data.etage) || l?.etage || match?.etage || '',
+    local: u?.local || (data && data.local) || l?.local || match?.local || '',
+    categorie: u?.categorie || (data && data.categorie) || l?.categorie || match?.categorie || '',
+    type_equipement: u?.type_equipement || (data && data.equipement) || l?.type_equipement || match?.type_equipement || '',
+    marque:'', modele:'', numero_serie:'',
+    quantite: (data && data.quantite) || 1,
+    etat:'conforme', presence:true, commentaire:'',
+    technicien: APP.settings.technicien || '',
+    photo:'', signature:'',
+    latitude:null, longitude:null,
+    date_modification: new Date().toISOString(),
+    _isNew:true,
+  };
+  if(u) fiche._boundUnitId = u.id;
+  return fiche;
+}
+
+/* Si aucune unité n'a été explicitement ciblée, cherche automatiquement
+   la première unité théorique non associée du même local/catégorie —
+   permet de scanner pièce par pièce sans passer par l'écran Équipements. */
+function findAutoUnit(record){
+  return APP.unites.find(u=>
+    !u.identifiant_qr &&
+    (u.local||'').toLowerCase() === (record.local||'').toLowerCase() &&
+    (u.etage||'').toLowerCase() === (record.etage||'').toLowerCase() &&
+    (u.site||'').toLowerCase() === (record.site||'').toLowerCase() &&
+    (!record.categorie || (u.categorie||'').toLowerCase() === (record.categorie||'').toLowerCase())
+  );
+}
+
+/* =====================================================================
+   MODALE — QR déjà relevé : que faire ?
+   ===================================================================== */
+function openModal(html){
+  document.getElementById('modalSheet').innerHTML = html;
+  document.getElementById('modalOverlay').hidden = false;
+}
+function closeModal(){ document.getElementById('modalOverlay').hidden = true; }
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modalOverlay') closeModal();
+});
+
+function openDuplicateModal(existing, scanData){
+  openModal(`
+    <h3>Ce QR code a déjà été relevé</h3>
+    <p><b>${esc(existing.local || existing.site || 'Équipement')}</b> — dernier état :
+       <span class="chip" style="background:var(${stateInfo(existing.etat).tint});color:var(${stateInfo(existing.etat).var})">
+         <span class="dot" style="background:var(${stateInfo(existing.etat).var})"></span>${esc(stateInfo(existing.etat).label)}
+       </span><br>
+       relevé le ${fmtDateFR(existing.date)} à ${esc(existing.heure||'')}${existing.technicien ? ' par '+esc(existing.technicien) : ''}.
+    </p>
+    <div class="actions">
+      <button class="btn btn-primary btn-block" id="dupModifier">Modifier la fiche existante</button>
+      <button class="btn btn-accent btn-block" id="dupNouveau">Créer un nouveau relevé (historique conservé)</button>
+      <button class="btn btn-block" id="dupAnnuler">Annuler</button>
+    </div>
+  `);
+  document.getElementById('dupModifier').addEventListener('click', ()=>{
+    closeModal();
+    openFiche(JSON.parse(JSON.stringify(existing)), {mode:'edit'});
+  });
+  document.getElementById('dupNouveau').addEventListener('click', ()=>{
+    closeModal();
+    const fresh = buildBlankFiche(scanData);
+    fresh.site = existing.site; fresh.batiment = existing.batiment; fresh.etage = existing.etage;
+    fresh.local = existing.local; fresh.categorie = existing.categorie; fresh.type_equipement = existing.type_equipement;
+    fresh._historiqueNote = { previousId: existing.id, previousEtat: existing.etat };
+    openFiche(fresh, {mode:'new-duplicate'});
+  });
+  document.getElementById('dupAnnuler').addEventListener('click', ()=>{ closeModal(); goto('scanner'); });
+}
+
+/* =====================================================================
+   FICHE DE RELEVÉ (formulaire)
+   ===================================================================== */
+function renderStateGrid(selected){
+  const grid = document.getElementById('stateGrid');
+  grid.innerHTML = STATES.map(s=>`
+    <label class="state-opt ${s.key===selected?'checked':''}" style="--chip-c:var(${s.var});--chip-tint:var(${s.tint})">
+      <input type="radio" name="f_etat" value="${s.key}" ${s.key===selected?'checked':''}>
+      <span class="dot" style="background:var(${s.var})"></span> ${esc(s.label)}
+    </label>
+  `).join('');
+  grid.querySelectorAll('input[name=f_etat]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      grid.querySelectorAll('.state-opt').forEach(o=> o.classList.remove('checked'));
+      inp.closest('.state-opt').classList.add('checked');
+    });
+  });
+}
+
+let sigDrawing = false, sigCtx = null;
+function setupSignaturePad(existingDataUrl){
+  const canvas = document.getElementById('sigPad');
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = (rect.width || canvas.clientWidth || 300) * 2;
+  canvas.height = 130 * 2;
+  sigCtx = canvas.getContext('2d');
+  sigCtx.scale(2,2);
+  sigCtx.lineWidth = 2; sigCtx.lineCap = 'round'; sigCtx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text');
+  sigCtx.clearRect(0,0,canvas.width,canvas.height);
+  if(existingDataUrl){
+    const im = new Image();
+    im.onload = ()=> sigCtx.drawImage(im, 0, 0, canvas.width/2, canvas.height/2);
+    im.src = existingDataUrl;
+  }
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x:(t.clientX-r.left), y:(t.clientY-r.top) };
+  }
+  function down(e){ sigDrawing = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x,p.y); e.preventDefault(); }
+  function move(e){ if(!sigDrawing) return; const p = pos(e); sigCtx.lineTo(p.x,p.y); sigCtx.stroke(); e.preventDefault(); }
+  function up(){ sigDrawing = false; }
+  canvas.onpointerdown = down; canvas.onpointermove = move;
+  window.addEventListener('pointerup', up);
+}
+document.getElementById('btnClearSig').addEventListener('click', ()=>{
+  const canvas = document.getElementById('sigPad');
+  sigCtx && sigCtx.clearRect(0,0,canvas.width,canvas.height);
+});
+
+function renderPhoto(dataUrl){
+  const wrap = document.getElementById('photoWrap');
+  APP.currentPhoto = dataUrl || '';
+  wrap.innerHTML = dataUrl
+    ? `<img class="photo-preview" src="${dataUrl}"><button type="button" class="btn btn-sm" id="btnRemovePhoto" style="align-self:flex-start;margin-top:6px;">Retirer la photo</button>`
+    : '';
+  const rm = document.getElementById('btnRemovePhoto');
+  if(rm) rm.addEventListener('click', ()=> renderPhoto(''));
+}
+async function compressImage(file, maxW){
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxW / bitmap.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.6);
+}
+document.getElementById('filePhotoForm').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  e.target.value = '';
+  try{ renderPhoto(await compressImage(file, 900)); }
+  catch(err){ toast('Impossible de charger cette photo'); }
+});
+
+function openFiche(record, opts){
+  opts = opts || {};
+  APP.currentFiche = record;
+  document.getElementById('ficheContextBox').hidden = !record.identifiant_qr;
+  document.getElementById('ficheIdDisplay').textContent = record.identifiant_qr || '';
+  document.getElementById('f_date').value = record.date || todayISO();
+  document.getElementById('f_heure').value = record.heure || nowHM();
+  document.getElementById('f_site').value = record.site || '';
+  document.getElementById('f_batiment').value = record.batiment || '';
+  document.getElementById('f_etage').value = record.etage || '';
+  document.getElementById('f_local').value = record.local || '';
+  document.getElementById('f_categorie').value = record.categorie || '';
+  document.getElementById('f_type').value = record.type_equipement || '';
+  document.getElementById('f_marque').value = record.marque || '';
+  document.getElementById('f_modele').value = record.modele || '';
+  document.getElementById('f_serie').value = record.numero_serie || '';
+  document.getElementById('f_quantite').value = record.quantite || 1;
+  document.getElementById('f_presence').checked = record.presence !== false;
+  document.getElementById('f_commentaire').value = record.commentaire || '';
+  document.getElementById('f_technicien').value = record.technicien || APP.settings.technicien || '';
+  renderStateGrid(record.etat || 'conforme');
+  renderPhoto(record.photo || '');
+  setTimeout(()=> setupSignaturePad(record.signature || ''), 0);
+
+  if(navigator.geolocation && !record.latitude){
+    navigator.geolocation.getCurrentPosition(
+      (pos)=>{ APP.currentFiche.latitude = pos.coords.latitude; APP.currentFiche.longitude = pos.coords.longitude; },
+      ()=>{ /* position indisponible : champ laissé vide, sans bloquer la saisie */ },
+      { timeout:4000 }
+    );
+  }
+  goto('fiche');
+}
+document.getElementById('btnFicheCancel').addEventListener('click', ()=>{
+  stopScanner();
+  goto(APP.currentFiche && APP.currentFiche._isNew ? 'scanner' : 'liste');
+});
+
+function diffFields(oldR, newR){
+  const labels = {
+    site:'Site', batiment:'Bâtiment', etage:'Étage', local:'Local', categorie:'Catégorie',
+    type_equipement:'Type d’équipement', marque:'Marque', modele:'Modèle', numero_serie:'N° de série',
+    quantite:'Quantité', etat:'État', presence:'Présence', commentaire:'Commentaire',
+  };
+  const out = [];
+  for(const k of Object.keys(labels)){
+    const a = oldR ? oldR[k] : undefined, b = newR[k];
+    if(String(a ?? '') !== String(b ?? '')) out.push({ champ:labels[k], ancienne: a, nouvelle: b });
+  }
+  return out;
+}
+
+document.getElementById('ficheForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const site = document.getElementById('f_site').value.trim();
+  const local = document.getElementById('f_local').value.trim();
+  if(!site || !local){ toast('Site et local sont requis'); return; }
+
+  const wasNewFromScan = !!APP.currentFiche._isNew;
+  const before = APP.currentFiche._isNew ? null : APP.releves.find(r=> r.id === APP.currentFiche.id);
+  const record = Object.assign({}, APP.currentFiche, {
+    identifiant_qr: APP.currentFiche.identifiant_qr || ('MANUEL-'+uid().slice(0,8).toUpperCase()),
+    date: document.getElementById('f_date').value || todayISO(),
+    heure: document.getElementById('f_heure').value || nowHM(),
+    site, batiment: document.getElementById('f_batiment').value.trim(),
+    etage: document.getElementById('f_etage').value.trim(), local,
+    categorie: document.getElementById('f_categorie').value.trim(),
+    type_equipement: document.getElementById('f_type').value.trim(),
+    marque: document.getElementById('f_marque').value.trim(),
+    modele: document.getElementById('f_modele').value.trim(),
+    numero_serie: document.getElementById('f_serie').value.trim(),
+    quantite: Number(document.getElementById('f_quantite').value || 1),
+    etat: (document.querySelector('input[name=f_etat]:checked')||{}).value || 'conforme',
+    presence: document.getElementById('f_presence').checked,
+    commentaire: document.getElementById('f_commentaire').value.trim(),
+    technicien: document.getElementById('f_technicien').value.trim(),
+    photo: APP.currentPhoto || '',
+    signature: (sigCtx ? document.getElementById('sigPad').toDataURL('image/png') : (APP.currentFiche.signature||'')),
+    date_modification: new Date().toISOString(),
+  });
+  delete record._isNew;
+  const boundUnitId = record._boundUnitId; delete record._boundUnitId;
+
+  const histNote = record._historiqueNote; delete record._historiqueNote;
+  await idbPut('releves', record);
+  const idx = APP.releves.findIndex(r=> r.id === record.id);
+  if(idx>=0) APP.releves[idx] = record; else APP.releves.push(record);
+
+  // Associe ce relevé à une unité théorique (tête n°1, n°2…) : soit la
+  // cible explicite choisie depuis l'écran Équipements, soit — à défaut —
+  // la première unité non associée du même local/catégorie.
+  const targetUnit = (boundUnitId && APP.unites.find(u=> u.id === boundUnitId)) || findAutoUnit(record);
+  if(targetUnit && targetUnit.identifiant_qr !== record.identifiant_qr){
+    const updatedUnit = Object.assign({}, targetUnit, { identifiant_qr: record.identifiant_qr, releve_id: record.id });
+    await idbPut('unites', updatedUnit);
+    const uidx = APP.unites.findIndex(u=> u.id === updatedUnit.id);
+    if(uidx>=0) APP.unites[uidx] = updatedUnit;
+  }
+  APP.pendingUnit = null;
+
+  // Historique des modifications
+  const entries = [];
+  if(histNote){
+    entries.push({ id:uid(), identifiant_qr:record.identifiant_qr, date:new Date().toISOString(),
+      utilisateur:record.technicien, champ:'—', ancienne_valeur: stateInfo(histNote.previousEtat).label,
+      nouvelle_valeur: stateInfo(record.etat).label, type_modification:'Nouveau relevé (doublon conservé)' });
+  }else if(before){
+    for(const d of diffFields(before, record)){
+      entries.push({ id:uid(), identifiant_qr:record.identifiant_qr, date:new Date().toISOString(),
+        utilisateur:record.technicien, champ:d.champ, ancienne_valeur:d.ancienne, nouvelle_valeur:d.nouvelle,
+        type_modification:'Modification' });
+    }
+  }else{
+    entries.push({ id:uid(), identifiant_qr:record.identifiant_qr, date:new Date().toISOString(),
+      utilisateur:record.technicien, champ:'—', ancienne_valeur:'', nouvelle_valeur:stateInfo(record.etat).label,
+      type_modification:'Création' });
+  }
+  if(entries.length){ await idbBulkPut('historique', entries); APP.historique.push(...entries); }
+
+  if(record.technicien && record.technicien !== APP.settings.technicien){
+    APP.settings.technicien = record.technicien;
+    idbPut('settings', {key:'technicien', value:record.technicien});
+  }
+
+  stopScanner();
+  // En contexte "étage/local" (série de scans dans la même pièce), on
+  // retourne directement au scanner pour enchaîner sur la tête suivante
+  // au lieu de renvoyer vers la liste à chaque relevé.
+  if(wasNewFromScan && APP.scanLocation && APP.scanLocation.local){
+    goto('scanner');
+    toast('Relevé enregistré — prêt pour le scan suivant');
+  }else{
+    toast('Relevé enregistré');
+    goto('liste');
+  }
+});
+
+/* =====================================================================
+   ÉCRAN LISTE
+   ===================================================================== */
+const ETAT_FILTERS = [{key:'tous', label:'Tous'}, ...STATES.map(s=>({key:s.key, label:s.label}))];
+function renderFilterChips(){
+  const box = document.getElementById('filterEtat');
+  box.innerHTML = ETAT_FILTERS.map(f=>`<button class="filter-chip ${f.key===APP.listeFilterEtat?'active':''}" data-etat="${f.key}">${esc(f.label)}</button>`).join('');
+  box.querySelectorAll('.filter-chip').forEach(c=> c.addEventListener('click', ()=>{ APP.listeFilterEtat = c.dataset.etat; renderListe(); }));
+}
+function renderListe(){
+  renderFilterChips();
+  const q = (document.getElementById('searchListe').value||'').toLowerCase();
+  let items = latestByIdentifiant().sort((a,b)=> (b.date_modification||'').localeCompare(a.date_modification||''));
+  if(APP.listeFilterEtat !== 'tous') items = items.filter(r=> r.etat === APP.listeFilterEtat);
+  if(q) items = items.filter(r=>
+    (r.site||'').toLowerCase().includes(q) || (r.local||'').toLowerCase().includes(q) ||
+    (r.etage||'').toLowerCase().includes(q) || (r.identifiant_qr||'').toLowerCase().includes(q) ||
+    (r.categorie||'').toLowerCase().includes(q)
+  );
+  const box = document.getElementById('listeResults');
+  if(!items.length){
+    box.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M8 6h12M8 12h12M8 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <b>Aucun relevé</b><small>Scannez un QR code pour commencer.</small></div>`;
+    return;
+  }
+  box.innerHTML = items.map(r=>{
+    const st = stateInfo(r.etat);
+    return `<div class="releve-item" data-id="${r.id}">
+      <div class="row1">
+        <div>
+          <div class="loc">${esc(r.local || r.site || 'Équipement')}</div>
+          <div class="meta">${esc([r.site, r.etage].filter(Boolean).join(' · '))}</div>
+        </div>
+        <span class="chip" style="background:var(${st.tint});color:var(${st.var})"><span class="dot" style="background:var(${st.var})"></span>${esc(st.label)}</span>
+      </div>
+      <div class="id">${esc(r.identifiant_qr||'—')}</div>
+      <div class="meta">${fmtDateFR(r.date)} ${esc(r.heure||'')}${r.technicien ? ' · '+esc(r.technicien) : ''}${r.photo?' · 📷':''}</div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.releve-item').forEach(el=> el.addEventListener('click', ()=>{
+    const rec = APP.releves.find(r=> r.id === el.dataset.id);
+    if(rec) openFicheReadEdit(rec);
+  }));
+}
+document.getElementById('searchListe').addEventListener('input', debounce(renderListe, 150));
+
+function openFicheReadEdit(rec){
+  openModal(`
+    <h3>${esc(rec.local || rec.site)}</h3>
+    <p class="mono" style="word-break:break-all;">${esc(rec.identifiant_qr||'')}</p>
+    <p>${esc([rec.site, rec.batiment, rec.etage].filter(Boolean).join(' · '))}<br>
+       ${esc(rec.categorie||'')} ${rec.type_equipement?('— '+esc(rec.type_equipement)):''}<br>
+       État : ${esc(stateInfo(rec.etat).label)} · Relevé le ${fmtDateFR(rec.date)} ${esc(rec.heure||'')}
+       ${rec.commentaire ? '<br>« '+esc(rec.commentaire)+' »' : ''}</p>
+    <div class="actions">
+      <button class="btn btn-primary btn-block" id="reEdit">Modifier</button>
+      <button class="btn btn-danger btn-block" id="reDelete">Supprimer ce relevé</button>
+      <button class="btn btn-block" id="reClose">Fermer</button>
+    </div>
+  `);
+  document.getElementById('reEdit').addEventListener('click', ()=>{ closeModal(); openFiche(JSON.parse(JSON.stringify(rec)), {mode:'edit'}); });
+  document.getElementById('reDelete').addEventListener('click', ()=>{
+    closeModal();
+    openModal(`
+      <h3>Supprimer ce relevé ?</h3>
+      <p>Cette action est irréversible. Le relevé de « ${esc(rec.local||rec.identifiant_qr)} » sera définitivement supprimé.</p>
+      <div class="actions">
+        <button class="btn btn-danger btn-block" id="confirmDelete">Supprimer définitivement</button>
+        <button class="btn btn-block" id="cancelDelete">Annuler</button>
+      </div>`);
+    document.getElementById('confirmDelete').addEventListener('click', async ()=>{
+      await idbDelete('releves', rec.id);
+      APP.releves = APP.releves.filter(r=> r.id !== rec.id);
+      const h = { id:uid(), identifiant_qr:rec.identifiant_qr, date:new Date().toISOString(), utilisateur:APP.settings.technicien||'', champ:'—', ancienne_valeur:stateInfo(rec.etat).label, nouvelle_valeur:'', type_modification:'Suppression' };
+      await idbPut('historique', h); APP.historique.push(h);
+      // Libère l'unité théorique éventuellement associée à ce relevé
+      const linkedUnit = APP.unites.find(u=> u.releve_id === rec.id);
+      if(linkedUnit){
+        const freed = Object.assign({}, linkedUnit, { identifiant_qr:'', releve_id:'' });
+        await idbPut('unites', freed);
+        const uidx = APP.unites.findIndex(u=> u.id === freed.id);
+        if(uidx>=0) APP.unites[uidx] = freed;
+      }
+      closeModal(); toast('Relevé supprimé'); renderListe();
+    });
+    document.getElementById('cancelDelete').addEventListener('click', closeModal);
+  });
+  document.getElementById('reClose').addEventListener('click', closeModal);
+}
+
+/* =====================================================================
+   TABLEAU DE BORD
+   ===================================================================== */
+function renderDashboard(){
+  const latest = latestByIdentifiant();
+  // Quand une liste a été importée, le suivi précis se fait unité par unité
+  // (Tête n°1, n°2…) ; sinon on retombe sur le décompte agrégé par local.
+  const useUnits = APP.unites.length > 0;
+  const attendu = useUnits ? APP.unites.length : APP.checklist.reduce((s,c)=> s + (Number(c.quantite_attendue)||0), 0);
+  const releve = useUnits ? APP.unites.filter(u=> u.identifiant_qr).length : latest.length;
+  const pct = attendu > 0 ? Math.min(100, Math.round((releve/attendu)*100)) : (releve>0 ? 100 : 0);
+  const ring = document.getElementById('dashRing');
+  const circumference = 2*Math.PI*36;
+  ring.setAttribute('stroke-dasharray', circumference.toFixed(1));
+  ring.setAttribute('stroke-dashoffset', (circumference*(1-pct/100)).toFixed(1));
+  document.getElementById('dashRingPct').textContent = pct+'%';
+  document.getElementById('dashProgressLabel').textContent = `${releve} / ${attendu||releve} équipement(s)`;
+  document.getElementById('dashRestant').textContent = attendu ? `${Math.max(0,attendu-releve)} restant(s)` : 'Aucune liste théorique importée';
+
+  const counts = {};
+  STATES.forEach(s=> counts[s.key]=0);
+  latest.forEach(r=>{ if(counts[r.etat]!==undefined) counts[r.etat]++; });
+  document.getElementById('kpiConforme').textContent = counts.conforme;
+  document.getElementById('kpiControler').textContent = counts.a_controler;
+  document.getElementById('kpiRemplacer').textContent = counts.a_remplacer;
+  document.getElementById('kpiAbsent').textContent = counts.absent;
+  document.getElementById('kpiHS').textContent = counts.hors_service;
+  document.getElementById('kpiNA').textContent = counts.non_accessible;
+
+  const bars = document.getElementById('dashBars');
+  const max = Math.max(1, ...STATES.map(s=>counts[s.key]));
+  bars.innerHTML = STATES.map(s=>`
+    <div class="bar-row">
+      <div class="label">${esc(s.label)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(counts[s.key]/max*100)}%;background:var(${s.var})"></div></div>
+      <div class="val">${counts[s.key]}</div>
+    </div>`).join('');
+
+  // Par site / étage
+  const groups = new Map();
+  if(useUnits){
+    APP.unites.forEach(u=>{
+      const key = (u.site||'—')+'|||'+(u.etage||'—');
+      const g = groups.get(key) || { site:u.site||'—', etage:u.etage||'—', attendu:0, releve:0 };
+      g.attendu++; if(u.identifiant_qr) g.releve++;
+      groups.set(key, g);
+    });
+  }else{
+    APP.checklist.forEach(c=>{
+      const key = (c.site||'—')+'|||'+(c.etage||'—');
+      const g = groups.get(key) || { site:c.site||'—', etage:c.etage||'—', attendu:0, releve:0 };
+      g.attendu += Number(c.quantite_attendue)||0;
+      groups.set(key, g);
+    });
+    latest.forEach(r=>{
+      const key = (r.site||'—')+'|||'+(r.etage||'—');
+      if(groups.has(key)){ groups.get(key).releve++; }
+      else{
+        const g = groups.get('AUTRE|||'+key) || { site:r.site||'—', etage:r.etage||'—', attendu:0, releve:0 };
+        g.releve++; groups.set('AUTRE|||'+key, g);
+      }
+    });
+  }
+  const rows = [...groups.values()].sort((a,b)=> a.site.localeCompare(b.site) || a.etage.localeCompare(b.etage));
+  const tbody = document.querySelector('#etageTable tbody');
+  tbody.innerHTML = rows.length ? rows.map(g=>`
+    <tr><td>${esc(g.site)}</td><td>${esc(g.etage)}</td>
+        <td class="num">${g.attendu||'—'}</td><td class="num">${g.releve}</td>
+        <td class="num">${g.attendu ? Math.max(0,g.attendu-g.releve) : '—'}</td></tr>
+  `).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-mute);padding:16px;">Aucune donnée — importez une liste ou effectuez des relevés</td></tr>`;
+}
+
+/* =====================================================================
+   ÉCRAN ÉQUIPEMENTS — suivi unité par unité (têtes thermostatiques, etc.)
+   Chaque ligne importée (local + nbre) a été éclatée en "unites" à
+   l'import ; on les regroupe ici par local pour afficher Tête n°1,
+   Tête n°2… et permettre d'associer directement un scan à l'une d'elles.
+   ===================================================================== */
+function renderEquipFilterChips(){
+  const box = document.getElementById('filterEquipEtage');
+  const etages = ['tous', ...new Set(APP.unites.map(u=> u.etage || '—'))];
+  box.innerHTML = etages.map(e=>
+    `<button class="filter-chip ${e===APP.equipFilterEtage?'active':''}" data-etage="${esc(e)}">${e==='tous'?'Tous les étages':esc(e)}</button>`
+  ).join('');
+  box.querySelectorAll('.filter-chip').forEach(c=> c.addEventListener('click', ()=>{ APP.equipFilterEtage = c.dataset.etage; renderEquipements(); }));
+}
+function renderEquipements(){
+  renderEquipFilterChips();
+  document.getElementById('equipOnlyMissing').checked = APP.equipOnlyMissing;
+  const q = (document.getElementById('searchEquip').value||'').toLowerCase();
+
+  const groups = new Map();
+  APP.unites.forEach(u=>{
+    const key = [u.site,u.etage,u.local,u.categorie].join('|||');
+    if(!groups.has(key)) groups.set(key, { site:u.site, etage:u.etage, local:u.local, categorie:u.categorie, type_equipement:u.type_equipement, units:[] });
+    groups.get(key).units.push(u);
+  });
+  let list = [...groups.values()];
+  if(APP.equipFilterEtage !== 'tous') list = list.filter(g=> (g.etage||'—') === APP.equipFilterEtage);
+  if(q) list = list.filter(g=> (g.local||'').toLowerCase().includes(q) || (g.etage||'').toLowerCase().includes(q) || (g.site||'').toLowerCase().includes(q));
+  if(APP.equipOnlyMissing) list = list.filter(g=> g.units.some(u=> !u.identifiant_qr));
+  list.forEach(g=> g.units.sort((a,b)=> a.index-b.index));
+  list.sort((a,b)=> (a.etage||'').localeCompare(b.etage||'') || (a.local||'').localeCompare(b.local||''));
+
+  const box = document.getElementById('equipResults');
+  if(!APP.unites.length){
+    box.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0l4-4m-4 4l-4-4M4 18v1.5A1.5 1.5 0 005.5 21h13a1.5 1.5 0 001.5-1.5V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>Aucune liste importée</b><small>Importez votre fichier Excel (Outils › Import) pour générer le détail unité par unité.</small></div>`;
+    return;
+  }
+  if(!list.length){
+    box.innerHTML = `<div class="empty"><b>Aucun résultat</b><small>Essayez un autre filtre ou une autre recherche.</small></div>`;
+    return;
+  }
+  box.innerHTML = list.map(g=>{
+    const filled = g.units.filter(u=> u.identifiant_qr).length;
+    const unitsHtml = g.units.map(u=>{
+      const rec = u.releve_id ? APP.releves.find(r=> r.id === u.releve_id) : null;
+      const st = rec ? stateInfo(rec.etat) : null;
+      return `<div class="unit-row ${u.identifiant_qr?'filled':''}" data-unit="${u.id}">
+        <div>
+          <div class="u-label">${esc(unitLabel(u))}</div>
+          ${u.identifiant_qr ? `<div class="u-id">${esc(u.identifiant_qr)}</div>` : ''}
+        </div>
+        <div class="u-status">${u.identifiant_qr ? (st ? esc(st.label) : 'Scanné ✓') : 'Non scanné · scanner ›'}</div>
+      </div>`;
+    }).join('');
+    return `<div class="local-card">
+      <div class="lc-head">
+        <div>
+          <b>${esc(g.local || g.site)}</b>
+          <div class="meta">${esc([g.site, g.etage, g.categorie].filter(Boolean).join(' · '))}</div>
+        </div>
+        <div class="lc-progress">${filled}/${g.units.length}</div>
+      </div>
+      <div class="unit-list">${unitsHtml}</div>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('.unit-row').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const u = APP.unites.find(x=> x.id === el.dataset.unit);
+      if(!u) return;
+      if(u.identifiant_qr && u.releve_id){
+        const rec = APP.releves.find(r=> r.id === u.releve_id);
+        if(rec){ openFicheReadEdit(rec); return; }
+      }
+      APP.pendingUnit = u;
+      goto('scanner');
+    });
+  });
+}
+document.getElementById('searchEquip').addEventListener('input', debounce(renderEquipements, 150));
+document.getElementById('equipOnlyMissing').addEventListener('change', (e)=>{ APP.equipOnlyMissing = e.target.checked; renderEquipements(); });
+
+/* =====================================================================
+   OUTILS — onglets
+   ===================================================================== */
+function selectToolTab(tab){
+  document.querySelectorAll('#toolTabs .filter-chip').forEach(c=> c.classList.toggle('active', c.dataset.tool===tab));
+  document.querySelectorAll('.tool-pane').forEach(p=> p.hidden = p.dataset.toolPane !== tab);
+}
+document.getElementById('toolTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-tool]'); if(!btn) return;
+  selectToolTab(btn.dataset.tool);
+});
+
+/* --------------------------- Réglages ------------------------------- */
+function loadSettingsForm(){
+  document.getElementById('settingTechnicien').value = APP.settings.technicien || '';
+  document.getElementById('settingSite').value = APP.settings.site || '';
+}
+document.getElementById('btnSaveSettings').addEventListener('click', async ()=>{
+  const technicien = document.getElementById('settingTechnicien').value.trim();
+  const site = document.getElementById('settingSite').value.trim();
+  APP.settings.technicien = technicien; APP.settings.site = site;
+  await idbPut('settings', {key:'technicien', value:technicien});
+  await idbPut('settings', {key:'site', value:site});
+  toast('Réglages enregistrés');
+  renderAccueil();
+});
+
+/* --------------------------- Import Excel ---------------------------
+   Analyse un classeur au format « organisation par bâtiment / étage /
+   local / catégorie / quantité » tel que fourni par l'utilisateur :
+   des lignes de regroupement (site, catégorie « A / … », étage) suivies
+   de paires (local, quantité). Un mode de repli « clé : valeur » est
+   prévu pour les fichiers rédigés ligne par ligne.
+   ---------------------------------------------------------------------*/
+function deriveType(categorie){
+  if(!categorie) return '';
+  const parts = categorie.split('/');
+  return (parts[1] || parts[0] || categorie).trim()
+    .toLowerCase().replace(/^./, c=>c.toUpperCase());
+}
+function isCategoryLabel(v){
+  return typeof v === 'string' && /^[A-Za-z]{1,3}\s*\/\s*.+/.test(v.trim());
+}
+function parseSheetGrouped(sheet){
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:null, blankrows:false});
+  const items = [];
+  let ignored = 0;
+  let site = '', categorie = '', floor = '', typeEquip = '';
+  for(const row of rows){
+    const cells = (row||[]).map(c=>{
+      if(c===null || c===undefined || c==='') return null;
+      return typeof c === 'string' ? c.trim() : c;
+    });
+    const nonEmpty = cells.filter(c=> c!==null && c!=='');
+    if(nonEmpty.length === 0) continue;
+    const c0 = cells[0];
+
+    // ligne d'en-tête technique dupliquée ("local", "nbre", ...)
+    if(typeof c0 === 'string' && c0.toLowerCase() === 'local'){ continue; }
+
+    // une seule cellule texte : catégorie OU étage/site
+    if(nonEmpty.length === 1 && typeof c0 === 'string'){
+      if(isCategoryLabel(c0)){ categorie = c0; floor = ''; typeEquip = deriveType(c0); }
+      else if(!site){ site = c0; }
+      else{ floor = c0; }
+      continue;
+    }
+    // deux cellules texte : en-tête « étage, type d'équipement »
+    if(nonEmpty.length === 2 && typeof cells[0] === 'string' && typeof cells[1] === 'string'){
+      floor = cells[0]; typeEquip = cells[1];
+      continue;
+    }
+    // texte + nombre : ligne de données (local, quantité)
+    if(typeof cells[0] === 'string' && typeof cells[1] === 'number'){
+      items.push({
+        id: uid(), site: site || '', batiment: '', etage: floor || '',
+        local: cells[0], categorie: categorie || '',
+        type_equipement: typeEquip || deriveType(categorie) || '',
+        quantite_attendue: cells[1],
+      });
+      continue;
+    }
+    ignored++;
+  }
+  return { items, ignored };
+}
+/* Mode de repli : lignes « Clé : Valeur » qui décrivent un équipement
+   par bloc, séparées par un blanc ou par une nouvelle clé « Site ». */
+function parseSheetKeyValue(sheet){
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:null, blankrows:false});
+  const items = [];
+  let cur = {};
+  const flush = ()=>{
+    if(cur.local || cur.equipement){
+      items.push({
+        id: uid(), site: cur.site||'', batiment: cur.batiment||'', etage: cur.etage||'',
+        local: cur.local || cur.equipement || '', categorie: cur.categorie||'',
+        type_equipement: cur.equipement || deriveType(cur.categorie) || '',
+        quantite_attendue: Number(cur.quantite)||1,
+      });
+    }
+    cur = {};
+  };
+  const map = { site:'site', batiment:'batiment', 'bâtiment':'batiment', categorie:'categorie', 'catégorie':'categorie',
+                etage:'etage', 'étage':'etage', local:'local', equipement:'equipement', 'équipement':'equipement', quantite:'quantite', 'quantité':'quantite' };
+  for(const row of rows){
+    const line = (row||[]).filter(c=>c!==null && c!=='').join(' ').trim();
+    if(!line) continue;
+    const m = line.match(/^([^:]{2,20}):\s*(.+)$/);
+    if(!m) continue;
+    const key = map[m[1].trim().toLowerCase()];
+    if(!key) continue;
+    if(key === 'site' && cur.site) flush();
+    cur[key] = m[2].trim();
+    if(key === 'quantite') flush();
+  }
+  flush();
+  return { items, ignored:0 };
+}
+
+let importWorkbook = null;
+document.getElementById('fileImportExcel').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  e.target.value = '';
+  document.getElementById('importSummary').textContent = 'Analyse du fichier…';
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    importWorkbook = wb;
+    let items = [], ignored = 0;
+    for(const name of wb.SheetNames){
+      const sheet = wb.Sheets[name];
+      let r = parseSheetGrouped(sheet);
+      if(r.items.length === 0){ r = parseSheetKeyValue(sheet); }
+      items = items.concat(r.items); ignored += r.ignored;
+    }
+    APP.importItems = items; APP.importIgnored = ignored;
+    if(!items.length){
+      document.getElementById('importSummary').textContent = 'Aucun équipement reconnu dans ce fichier — vérifiez sa mise en forme.';
+      document.getElementById('importPreviewCard').hidden = true;
+      return;
+    }
+    document.getElementById('importSummary').textContent = `${items.length} équipement(s) détecté(s) dans « ${file.name} ».`;
+    renderImportPreview();
+  }catch(err){
+    console.warn(err);
+    document.getElementById('importSummary').textContent = 'Impossible de lire ce fichier (format non pris en charge).';
+  }
+});
+
+function renderImportPreview(){
+  const card = document.getElementById('importPreviewCard');
+  card.hidden = false;
+  document.getElementById('importCount').textContent = APP.importItems.length;
+  document.getElementById('importIgnoredNote').textContent = APP.importIgnored
+    ? `${APP.importIgnored} ligne(s) non reconnue(s) ignorée(s).` : '';
+  const body = document.getElementById('importTableBody');
+  body.innerHTML = APP.importItems.map((it,i)=>`
+    <tr data-i="${i}">
+      <td><input type="checkbox" checked class="im-keep" style="accent-color:var(--primary);width:15px;height:15px;"></td>
+      <td><input type="text" class="im-site" value="${esc(it.site)}"></td>
+      <td><input type="text" class="im-etage" value="${esc(it.etage)}"></td>
+      <td><input type="text" class="im-local" value="${esc(it.local)}"></td>
+      <td><input type="text" class="im-categorie" value="${esc(it.categorie)}"></td>
+      <td><input type="text" class="im-type" value="${esc(it.type_equipement)}"></td>
+      <td class="num"><input type="number" class="im-qte" value="${esc(it.quantite_attendue)}"></td>
+    </tr>`).join('');
+}
+document.getElementById('btnApplySiteFill').addEventListener('click', ()=>{
+  const v = document.getElementById('importSiteFill').value.trim(); if(!v) return;
+  document.querySelectorAll('#importTableBody tr').forEach(tr=>{
+    const inp = tr.querySelector('.im-site');
+    if(!inp.value.trim()) inp.value = v;
+  });
+  toast('Site appliqué aux lignes vides');
+});
+document.getElementById('btnImportCancel').addEventListener('click', ()=>{
+  APP.importItems = []; document.getElementById('importPreviewCard').hidden = true;
+  document.getElementById('importSummary').textContent = '';
+});
+document.getElementById('btnImportConfirm').addEventListener('click', async ()=>{
+  const rows = [...document.querySelectorAll('#importTableBody tr')];
+  const finalItems = [];
+  rows.forEach(tr=>{
+    if(!tr.querySelector('.im-keep').checked) return;
+    finalItems.push({
+      id: uid(),
+      site: tr.querySelector('.im-site').value.trim(),
+      batiment: '',
+      etage: tr.querySelector('.im-etage').value.trim(),
+      local: tr.querySelector('.im-local').value.trim(),
+      categorie: tr.querySelector('.im-categorie').value.trim(),
+      type_equipement: tr.querySelector('.im-type').value.trim(),
+      quantite_attendue: Number(tr.querySelector('.im-qte').value) || 0,
+    });
+  });
+  if(!finalItems.length){ toast('Aucune ligne sélectionnée'); return; }
+  if(document.getElementById('importReplace').checked){
+    await idbClear('checklist'); APP.checklist = [];
+    await idbClear('unites'); APP.unites = [];
+  }
+  await idbBulkPut('checklist', finalItems);
+  APP.checklist.push(...finalItems);
+
+  // Éclate chaque ligne (local + nbre) en autant d'unités individuelles à
+  // associer chacune à un QR code sur site (ex. Ch1 · nbre 2 → Tête n°1, n°2).
+  const newUnits = [];
+  finalItems.forEach(item=>{
+    const n = Math.max(0, Number(item.quantite_attendue)||0); // 0 = aucune unité pour ce local (ex. local sans radiateur)
+    for(let i=1; i<=n; i++){
+      newUnits.push({
+        id: uid(), checklist_id: item.id,
+        site: item.site, batiment: item.batiment, etage: item.etage, local: item.local,
+        categorie: item.categorie, type_equipement: item.type_equipement,
+        index: i, identifiant_qr:'', releve_id:'',
+      });
+    }
+  });
+  if(newUnits.length){ await idbBulkPut('unites', newUnits); APP.unites.push(...newUnits); }
+
+  document.getElementById('importPreviewCard').hidden = true;
+  document.getElementById('importSummary').textContent = `${finalItems.length} équipement(s) ajouté(s) à la liste théorique (${newUnits.length} unité(s) à scanner).`;
+  toast('Import terminé');
+  renderAccueil();
+});
+
+/* --------------------------- Export Excel ---------------------------- */
+function initDownloads(){ /* no-op: standalone build uses direct browser downloads */ }
+function buildWorkbook(){
+  const latest = latestByIdentifiant();
+  const wb = XLSX.utils.book_new();
+
+  // Feuille Relevés
+  const relRows = APP.releves.slice().sort((a,b)=> (a.date_modification||'').localeCompare(b.date_modification||'')).map(r=>({
+    'ID du relevé': r.id, 'Identifiant QR': r.identifiant_qr, 'Date du relevé': r.date, 'Heure du relevé': r.heure,
+    'Site': r.site, 'Bâtiment': r.batiment, 'Étage': r.etage, 'Local': r.local, 'Catégorie': r.categorie,
+    "Type d'équipement": r.type_equipement, 'Marque': r.marque, 'Modèle': r.modele, 'Numéro de série': r.numero_serie,
+    'Quantité': r.quantite, 'État': stateInfo(r.etat).label, 'Présence': r.presence ? 'Oui' : 'Non',
+    'Commentaire': r.commentaire, 'Technicien': r.technicien,
+    'Latitude': r.latitude ?? '', 'Longitude': r.longitude ?? '',
+    'Nom du fichier photo': r.photo ? (r.identifiant_qr||r.id)+'.jpg' : '',
+    'Date de modification': r.date_modification,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(relRows), 'Relevés');
+
+  // Feuille Synthèse
+  const attendu = APP.checklist.reduce((s,c)=> s+(Number(c.quantite_attendue)||0), 0);
+  const counts = {}; STATES.forEach(s=> counts[s.key]=0);
+  latest.forEach(r=>{ if(counts[r.etat]!==undefined) counts[r.etat]++; });
+  const synth = [
+    { 'Indicateur':'Nombre total d’équipements attendus', 'Valeur': attendu },
+    { 'Indicateur':'Nombre d’équipements relevés', 'Valeur': latest.length },
+    { 'Indicateur':'Nombre d’équipements non relevés', 'Valeur': Math.max(0, attendu-latest.length) },
+    { 'Indicateur':'Nombre d’équipements conformes', 'Valeur': counts.conforme },
+    { 'Indicateur':'Nombre d’équipements à contrôler', 'Valeur': counts.a_controler },
+    { 'Indicateur':'Nombre d’équipements à remplacer', 'Valeur': counts.a_remplacer },
+    { 'Indicateur':'Nombre d’équipements absents', 'Valeur': counts.absent },
+    { 'Indicateur':'Nombre d’équipements hors service', 'Valeur': counts.hors_service },
+    { 'Indicateur':'Nombre d’équipements non accessibles', 'Valeur': counts.non_accessible },
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(synth), 'Synthèse');
+
+  // Feuille Par étage
+  const groups = new Map();
+  APP.checklist.forEach(c=>{
+    const key = (c.site||'—')+'|||'+(c.etage||'—');
+    const g = groups.get(key) || { Site:c.site||'—', Étage:c.etage||'—', 'Nombre d’équipements':0, 'Nombre relevé':0 };
+    g['Nombre d’équipements'] += Number(c.quantite_attendue)||0;
+    groups.set(key, g);
+  });
+  latest.forEach(r=>{
+    const key = (r.site||'—')+'|||'+(r.etage||'—');
+    if(groups.has(key)) groups.get(key)['Nombre relevé']++;
+  });
+  const parEtage = [...groups.values()].map(g=> Object.assign({}, g, { 'Nombre restant': Math.max(0, g['Nombre d’équipements']-g['Nombre relevé']) }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(parEtage), 'Par étage');
+
+  // Feuille Anomalies
+  const anomalies = latest.filter(r=> r.etat && r.etat !== 'conforme').map(r=>({
+    'Site': r.site, 'Étage': r.etage, 'Local': r.local, 'Identifiant QR': r.identifiant_qr,
+    'État': stateInfo(r.etat).label, 'Commentaire': r.commentaire, 'Technicien': r.technicien, 'Date': r.date,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(anomalies), 'Anomalies');
+
+  // Feuille Équipements attendus (liste théorique importée)
+  const attendus = APP.checklist.map(c=>({
+    'Site': c.site, 'Bâtiment': c.batiment, 'Étage': c.etage, 'Local': c.local,
+    'Catégorie': c.categorie, "Type d'équipement": c.type_equipement, 'Quantité attendue': c.quantite_attendue,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendus), 'Équipements attendus');
+
+  // Feuille Suivi par local — une ligne par local, une colonne QR + État par
+  // unité (Tête n°1 en colonne QR n°1, Tête n°2 en colonne QR n°2, etc.),
+  // ajustée automatiquement au nombre de têtes prévu dans le local.
+  if(APP.unites.length){
+    const byLocal = new Map();
+    APP.unites.forEach(u=>{
+      const key = [u.site,u.etage,u.local,u.categorie].join('|||');
+      if(!byLocal.has(key)) byLocal.set(key, { site:u.site, batiment:u.batiment, etage:u.etage, local:u.local, categorie:u.categorie, type_equipement:u.type_equipement, units:[] });
+      byLocal.get(key).units.push(u);
+    });
+    const maxN = Math.max(1, ...[...byLocal.values()].map(g=> g.units.length));
+    const suivi = [...byLocal.values()]
+      .sort((a,b)=> (a.etage||'').localeCompare(b.etage||'') || (a.local||'').localeCompare(b.local||''))
+      .map(g=>{
+        g.units.sort((a,b)=> a.index-b.index);
+        const row = {
+          'Site': g.site, 'Bâtiment': g.batiment, 'Étage': g.etage, 'Local': g.local,
+          'Catégorie': g.categorie, "Type d'équipement": g.type_equipement, 'Nbre prévu': g.units.length,
+        };
+        for(let i=1;i<=maxN;i++){
+          const u = g.units[i-1];
+          row[`QR n°${i}`] = u ? (u.identifiant_qr || '') : '';
+          row[`État n°${i}`] = (u && u.identifiant_qr) ? (()=>{ const r = APP.releves.find(x=>x.id===u.releve_id); return r ? stateInfo(r.etat).label : ''; })() : '';
+        }
+        return row;
+      });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(suivi), 'Suivi par local');
+  }
+
+  // Feuille Historique
+  const hist = APP.historique.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||'')).map(h=>({
+    'Identifiant QR': h.identifiant_qr, 'Date': h.date, 'Utilisateur': h.utilisateur, 'Champ': h.champ,
+    'Ancienne valeur': h.ancienne_valeur, 'Nouvelle valeur': h.nouvelle_valeur, 'Type de modification': h.type_modification,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(hist), 'Historique');
+
+  return wb;
+}
+document.getElementById('btnExportExcel').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('exportStatus');
+  if(!APP.releves.length && !APP.checklist.length){ toast('Aucune donnée à exporter'); return; }
+  statusEl.textContent = 'Génération du fichier…';
+  try{
+    const wb = buildWorkbook();
+    const arr = XLSX.write(wb, {type:'array', bookType:'xlsx'});
+    const blob = new Blob([arr], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const filename = `releves_${(APP.settings.site||'chantier').replace(/[^a-z0-9]+/gi,'_')}_${todayISO()}.xlsx`;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    statusEl.textContent = 'Fichier téléchargé ✓';
+    toast('Export Excel généré');
+  }catch(err){
+    console.warn(err);
+    statusEl.textContent = 'Erreur lors de la génération du fichier.';
+    toast('Erreur export');
+  }
+});
+
+/* --------------------------- Zone dangereuse -------------------------- */
+function confirmDanger(title, msg, onConfirm){
+  openModal(`
+    <h3>${esc(title)}</h3>
+    <p>${msg}</p>
+    <div class="actions">
+      <button class="btn btn-danger btn-block" id="dangerConfirm">Confirmer la suppression</button>
+      <button class="btn btn-block" id="dangerCancel">Annuler</button>
+    </div>`);
+  document.getElementById('dangerConfirm').addEventListener('click', async ()=>{ closeModal(); await onConfirm(); });
+  document.getElementById('dangerCancel').addEventListener('click', closeModal);
+}
+document.getElementById('btnPurgeReleves').addEventListener('click', ()=>{
+  confirmDanger('Supprimer tous les relevés ?', 'Les fiches de relevé et leur historique seront définitivement supprimés. La liste des équipements attendus sera conservée (les unités redeviennent « non scannées »).', async ()=>{
+    await idbClear('releves'); await idbClear('historique');
+    APP.releves = []; APP.historique = [];
+    const freedUnits = APP.unites.map(u=> Object.assign({}, u, {identifiant_qr:'', releve_id:''}));
+    if(freedUnits.length){ await idbBulkPut('unites', freedUnits); APP.unites = freedUnits; }
+    toast('Relevés supprimés'); renderAccueil();
+  });
+});
+document.getElementById('btnPurgeChecklist').addEventListener('click', ()=>{
+  confirmDanger('Supprimer la liste des équipements attendus ?', 'La liste théorique importée et le détail par unité seront supprimés. Les relevés déjà effectués seront conservés.', async ()=>{
+    await idbClear('checklist'); APP.checklist = [];
+    await idbClear('unites'); APP.unites = [];
+    toast('Liste supprimée'); renderAccueil();
+  });
+});
+document.getElementById('btnPurgeAll').addEventListener('click', ()=>{
+  confirmDanger('Tout réinitialiser ?', 'Relevés, liste des équipements attendus, détail par unité et historique seront définitivement supprimés. Cette action ne peut pas être annulée.', async ()=>{
+    await Promise.all([idbClear('releves'), idbClear('checklist'), idbClear('unites'), idbClear('historique')]);
+    APP.releves = []; APP.checklist = []; APP.unites = []; APP.historique = [];
+    toast('Toutes les données ont été réinitialisées'); renderAccueil();
+  });
+});
+
+/* =====================================================================
+   INITIALISATION
+   ===================================================================== */
+(async function init(){
+  try{ await loadAll(); }catch(e){ console.warn('Chargement initial impossible', e); }
+  loadSettingsForm();
+  renderAccueil();
+  renderStateGrid('conforme');
+  initDownloads();
+  goto('accueil');
+})();
+</script>
+
+</body></html>
